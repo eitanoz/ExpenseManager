@@ -37,7 +37,7 @@
         <i class="fa-solid fa-box"></i> Package Tracker
       </button>
       <button onclick="switchTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
-        <i class="fa-solid fa-gear"></i> Settings & Sync
+        <i class="fa-solid fa-gear"></i> Cards & Settings
       </button>
     </nav>
 
@@ -83,7 +83,10 @@
               </select>
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">Card / Account Nickname</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-600">Card / Account Nickname</label>
+                <button type="button" onclick="switchTab('settings')" class="text-[11px] text-indigo-600 hover:underline">+ Manage</button>
+              </div>
               <select id="expCard" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
                 <option value="Default Card">Loading cards...</option>
               </select>
@@ -269,8 +272,64 @@
         </div>
       </section>
 
-      <!-- TAB 3: SETTINGS & SYNC -->
+      <!-- TAB 3: CARDS & SETTINGS -->
       <section id="view-settings" class="hidden space-y-6">
+        <!-- Card Manager Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                <i class="fa-regular fa-credit-card text-indigo-500"></i> Manage Card Nicknames
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Saved directly to your Google Sheet <code>Cards</code> tab.</p>
+            </div>
+            <button onclick="fetchCards()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Reload Cards
+            </button>
+          </div>
+
+          <!-- Add New Card Form -->
+          <form id="cardForm" onsubmit="handleNewCard(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Nickname</label>
+              <input type="text" id="cardNickname" placeholder="e.g. Max Executive" required class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Issuer / Type</label>
+              <input type="text" id="cardIssuer" placeholder="e.g. Max, Cal, Isracard" required class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Billing Day (1-31)</label>
+              <input type="number" min="1" max="31" id="cardBillingDay" placeholder="e.g. 10" class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div class="flex items-end">
+              <button type="submit" id="addCardBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs py-2 px-3 rounded shadow-sm transition flex items-center justify-center gap-1">
+                <i class="fa-solid fa-plus"></i> Save Card
+              </button>
+            </div>
+          </form>
+
+          <!-- Current Saved Cards Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-2.5">Card Nickname</th>
+                  <th class="p-2.5">Issuer</th>
+                  <th class="p-2.5">Billing Day</th>
+                  <th class="p-2.5 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="cardsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                  <td colspan="4" class="p-4 text-center text-slate-400">Loading cards...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Connection Settings -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
           <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
             <i class="fa-solid fa-cloud-arrow-up text-indigo-500"></i> Backend Connection
@@ -304,10 +363,10 @@
     let packages = [];
     let cards = [];
 
-    // Force flush cache for version 5 update
-    if (localStorage.getItem("cleanStorage_v5") !== "true") {
+    // Force flush cache for version 6 update
+    if (localStorage.getItem("cleanStorage_v6") !== "true") {
       localStorage.clear();
-      localStorage.setItem("cleanStorage_v5", "true");
+      localStorage.setItem("cleanStorage_v6", "true");
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -355,9 +414,8 @@
           btn.className = "tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap";
         }
       });
-      if (tab === 'packages' && packages.length === 0) {
-        fetchPackages();
-      }
+      if (tab === 'packages' && packages.length === 0) fetchPackages();
+      if (tab === 'settings' && cards.length === 0) fetchCards();
     }
 
     /* ------------------- CARDS LOGIC ------------------- */
@@ -365,16 +423,20 @@
       try {
         const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Cards`);
         const data = await res.json();
-        cards = Array.isArray(data) ? data.filter(c => c && c.nickname && String(c.nickname).trim() !== "") : [];
+        cards = Array.isArray(data) 
+          ? data.filter(c => c && c.id && String(c.id).trim() !== "" && c.nickname && String(c.nickname).trim() !== "") 
+          : [];
         populateCardDropdown();
+        renderCardsTable();
       } catch (err) {
         console.warn("Could not load Cards sheet:", err);
-        cards = [
-          { nickname: "Max Personal" },
-          { nickname: "Cal Family" },
-          { nickname: "Corporate Card" }
+        const local = localStorage.getItem("cards");
+        cards = local ? JSON.parse(local) : [
+          { id: "c1", nickname: "Max Personal", issuer: "Max", billingCycleDay: "10" },
+          { id: "c2", nickname: "Cal Family", issuer: "Cal", billingCycleDay: "2" }
         ];
         populateCardDropdown();
+        renderCardsTable();
       }
     }
 
@@ -384,7 +446,87 @@
         select.innerHTML = `<option value="Default Card">Default Card</option>`;
         return;
       }
-      select.innerHTML = cards.map(c => `<option value="${c.nickname}">${c.nickname}</option>`).join('');
+      select.innerHTML = cards.map(c => `<option value="${c.nickname}">${c.nickname} (${c.issuer || 'Card'})</option>`).join('');
+    }
+
+    function renderCardsTable() {
+      const tbody = document.getElementById("cardsTableBody");
+      if (!cards || cards.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No cards registered yet. Add one using the form above.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = cards.map(c => `
+        <tr class="hover:bg-slate-50 border-b border-slate-100">
+          <td class="p-2.5 font-medium text-slate-900">${c.nickname}</td>
+          <td class="p-2.5 text-slate-600">${c.issuer || '-'}</td>
+          <td class="p-2.5 text-slate-500">${c.billingCycleDay ? c.billingCycleDay + 'th of month' : '-'}</td>
+          <td class="p-2.5 text-center">
+            <button onclick="deleteCard('${c.id}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-0.5 rounded">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function handleNewCard(e) {
+      e.preventDefault();
+      const addBtn = document.getElementById("addCardBtn");
+      addBtn.disabled = true;
+      addBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saving...`;
+
+      const nickname = document.getElementById("cardNickname").value.trim();
+      const issuer = document.getElementById("cardIssuer").value.trim();
+      const billingCycleDay = document.getElementById("cardBillingDay").value.trim();
+
+      const newCard = {
+        id: "c_" + Date.now().toString(),
+        nickname: nickname,
+        issuer: issuer,
+        billingCycleDay: billingCycleDay || "1"
+      };
+
+      cards.push(newCard);
+      populateCardDropdown();
+      renderCardsTable();
+      localStorage.setItem("cards", JSON.stringify(cards));
+
+      document.getElementById("cardNickname").value = "";
+      document.getElementById("cardIssuer").value = "";
+      document.getElementById("cardBillingDay").value = "";
+
+      try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "add", sheet: "Cards", data: newCard })
+        });
+        setSyncStatus("Cloud Synced", "emerald");
+      } catch (err) {
+        console.error("Failed to save card to sheet:", err);
+      } finally {
+        addBtn.disabled = false;
+        addBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Save Card`;
+      }
+    }
+
+    async function deleteCard(id) {
+      if (!confirm("Are you sure you want to remove this card nickname?")) return;
+      cards = cards.filter(c => String(c.id) !== String(id));
+      populateCardDropdown();
+      renderCardsTable();
+      localStorage.setItem("cards", JSON.stringify(cards));
+
+      try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "delete", sheet: "Cards", id: id })
+        });
+      } catch (err) {
+        console.error("Error deleting card:", err);
+      }
     }
 
     /* ------------------- EXPENSES LOGIC ------------------- */
