@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShekelTrack & Logistics - Personal Expense & Package Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    /* Smooth transitions and custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .badge-step {
+      position: relative;
+    }
+    .badge-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -14px;
+      width: 14px;
+      height: 2px;
+      background: #e2e8f0;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo / App Identity -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-emerald-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-lg text-slate-900 tracking-tight">ShekelTrack</span>
+              <span class="text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800">ILS ₪</span>
+            </div>
+            <p class="text-xs text-slate-500 hidden sm:block">Self-Hosted Expense & Package Forwarding Hub</p>
+          </div>
+        </div>
+
+        <!-- Global Action & Sync State -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <button onclick="openExpenseModal()" class="inline-flex items-center px-3.5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 active:scale-95 transition-all">
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>Add Expense</span>
+          </button>
+          
+          <button onclick="triggerQuickExport()" title="Quick Export JSON" class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 sm:space-x-4 overflow-x-auto no-scrollbar py-2 border-t border-slate-100 text-sm font-medium">
+        <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="nav-tab px-3.5 py-1.5 rounded-lg text-indigo-600 bg-indigo-50 font-semibold flex items-center space-x-1.5 whitespace-nowrap transition-colors">
+          <span>📊 Overview</span>
+        </button>
+        <button onclick="switchTab('expenses')" id="tab-btn-expenses" class="nav-tab px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap transition-colors">
+          <span>💳 All Expenses</span>
+          <span id="badge-total-expenses" class="text-xs bg-slate-200 px-1.5 py-0.5 rounded-full text-slate-700 font-mono">0</span>
+        </button>
+        <button onclick="switchTab('recurring')" id="tab-btn-recurring" class="nav-tab px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap transition-colors">
+          <span>🔄 Subscriptions</span>
+          <span id="badge-recurring-count" class="text-xs bg-slate-200 px-1.5 py-0.5 rounded-full text-slate-700 font-mono">0</span>
+        </button>
+        <button onclick="switchTab('packages')" id="tab-btn-packages" class="nav-tab px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap transition-colors">
+          <span>📦 Deliveries & Forwarding</span>
+          <span id="badge-in-transit" class="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full font-bold">0</span>
+        </button>
+        <button onclick="switchTab('settings')" id="tab-btn-settings" class="nav-tab px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap transition-colors">
+          <span>⚙️ Rates, Cards & Backup</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- VIEW 1: DASHBOARD -->
+    <section id="view-dashboard" class="space-y-6">
+      <!-- High-level Metric Stat Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Metric 1: Total Effective ILS -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Total Effective Spend</div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-slate-900" id="dash-total-ils">₪0.00</div>
+          <div class="mt-2 text-xs text-slate-500 flex items-center space-x-1">
+            <span>Includes items + 3rd-party shipping</span>
+          </div>
+          <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-400 opacity-50">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+        </div>
+
+        <!-- Metric 2: Foreign Spend Normalized -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Foreign Currency Purchases</div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-emerald-600" id="dash-foreign-ils">₪0.00</div>
+          <div class="mt-2 text-xs text-slate-500 flex items-center space-x-1">
+            <span id="dash-foreign-breakdown">$0 USD | €0 EUR</span>
+          </div>
+          <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-400 opacity-50">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 18h12l3-18H3z"/></svg>
+          </div>
+        </div>
+
+        <!-- Metric 3: Recurring Monthly Burn Rate -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Monthly Subscriptions</div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-indigo-600" id="dash-recurring-monthly">₪0.00</div>
+          <div class="mt-2 text-xs text-slate-500">
+            <span id="dash-active-subs-count">0</span> active repeating services
+          </div>
+          <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center text-purple-400 opacity-50">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </div>
+        </div>
+
+        <!-- Metric 4: Packages & Forwarders In Transit -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Active Deliveries</div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-amber-600" id="dash-active-packages">0</div>
+          <div class="mt-2 text-xs text-slate-500">
+            <span id="dash-forwarder-count">0</span> with 3rd-party forwarder
+          </div>
+          <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center text-amber-400 opacity-50">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Grid: Payment Methods Breakdown & Active Shipments Snapshot -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left: Payment Method Spend Breakdown -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+                <span>💳 Spend by Payment Method</span>
+              </h3>
+              <span class="text-xs text-slate-500">All Time</span>
+            </div>
+            <div id="dash-cards-breakdown" class="space-y-3">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-400">
+            Tip: Edit or add new cards in the "Rates, Cards & Backup" tab.
+          </div>
+        </div>
+
+        <!-- Right: Active Packages In Transit List (2 Columns wide) -->
+        <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+                <span>📦 Active Inbound Deliveries</span>
+              </h3>
+              <button onclick="switchTab('packages')" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                View all deliveries &rarr;
+              </button>
+            </div>
+            <div id="dash-active-packages-list" class="space-y-3">
+              <!-- Dynamic preview items -->
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Supports Israeli Post & local forwarders (UShops, Buy2USA, Shipito, etc.)</span>
+            <span class="font-medium text-slate-700">Quick Updates Available</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: EXPENSES LIST -->
+    <section id="view-expenses" class="hidden space-y-4">
+      <!-- Filter Bar -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-3 items-center justify-between">
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Currency Filter -->
+          <select id="filter-currency" onchange="renderExpensesTable()" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white">
+            <option value="ALL">All Currencies</option>
+            <option value="ILS">ILS (₪)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+          </select>
+
+          <!-- Payment Method Filter -->
+          <select id="filter-payment" onchange="renderExpensesTable()" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white">
+            <option value="ALL">All Payment Methods</option>
+            <!-- Populated dynamically -->
+          </select>
+
+          <!-- Type Filter -->
+          <select id="filter-type" onchange="renderExpensesTable()" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white">
+            <option value="ALL">All Types</option>
+            <option value="regular">One-Time Only</option>
+            <option value="recurring">Recurring / Subscription</option>
+            <option value="package">Has Package / Online Order</option>
+          </select>
+
+          <!-- Search Input -->
+          <input type="text" id="filter-search" oninput="renderExpensesTable()" placeholder="Search merchant, notes..." class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="exportToCSV()" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center space-x-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Export CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Expense Table / List -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold text-xs uppercase tracking-wider">
+              <tr>
+                <th class="py-3.5 px-4">Date & Merchant</th>
+                <th class="py-3.5 px-4">Payment Method</th>
+                <th class="py-3.5 px-4">Original Cost</th>
+                <th class="py-3.5 px-4">3rd-Party Freight</th>
+                <th class="py-3.5 px-4">Effective (ILS ₪)</th>
+                <th class="py-3.5 px-4">Delivery Status</th>
+                <th class="py-3.5 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="expenses-table-body" class="divide-y divide-slate-100 text-slate-700 font-normal">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        <div id="expenses-empty-state" class="hidden p-10 text-center text-slate-400">
+          <svg class="w-12 h-12 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <p class="font-medium text-slate-600">No expenses found matching the current filters.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: RECURRING / SUBSCRIPTIONS -->
+    <section id="view-recurring" class="hidden space-y-6">
+      <div class="bg-gradient-to-r from-indigo-900 to-indigo-700 text-white rounded-2xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold">Monthly Recurring Commitments</h2>
+          <p class="text-indigo-200 text-xs sm:text-sm mt-1">Keep track of subscription billing cycle days, card allocations, and avoid zombie charges.</p>
+        </div>
+        <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 text-right">
+          <div class="text-xs font-medium uppercase tracking-wider text-indigo-200">Total Monthly Burn</div>
+          <div class="text-2xl font-black text-white" id="recurring-total-header">₪0.00</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="recurring-cards-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- VIEW 4: PACKAGES & 3RD-PARTY FORWARDING HUB -->
+    <section id="view-packages" class="hidden space-y-6">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="font-bold text-lg text-slate-900">Inbound Deliveries & Freight Forwarders</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Track multi-leg delivery journeys, update post-purchase forwarding costs, and calculate total combined landed cost.</p>
+        </div>
+        <button onclick="openExpenseModal(true)" class="inline-flex items-center px-3.5 py-2 rounded-xl text-sm font-semibold bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 transition-colors">
+          <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          <span>Track New Package</span>
+        </button>
+      </div>
+
+      <!-- Packages Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5" id="packages-cards-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- VIEW 5: SETTINGS, CARDS & SYNC -->
+    <section id="view-settings" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Section 1: Backup & Cross-Device Sync -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-base">Multi-Device Backup & Sync</h3>
+              <p class="text-xs text-slate-500">100% private. Save or transfer your database between your mobile and PC.</p>
+            </div>
+          </div>
+
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-2">
+            <p><strong>How to sync without a hosting server:</strong></p>
+            <ol class="list-decimal list-inside space-y-1 text-slate-500">
+              <li>Click <strong>"Export Backup File (JSON)"</strong> to download your data.</li>
+              <li>Send it via WhatsApp, AirDrop, or save to Google Drive / iCloud.</li>
+              <li>On your other device, open this web app and click <strong>"Import & Restore"</strong>.</li>
+            </ol>
+          </div>
+
+          <div class="pt-2 flex flex-col sm:flex-row gap-3">
+            <button onclick="exportDatabaseJSON()" class="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-xs flex items-center justify-center space-x-2 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span>Export Backup File (.json)</span>
+            </button>
+            <label class="flex-1 px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl font-semibold text-xs flex items-center justify-center space-x-2 cursor-pointer transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l4-4m0 0l4 4m-4-4v12"/></svg>
+              <span>Import & Restore (.json)</span>
+              <input type="file" id="import-json-input" accept=".json" onchange="importDatabaseJSON(event)" class="hidden">
+            </label>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs text-slate-400">Reset to sample state:</span>
+            <button onclick="resetToMockData()" class="text-xs text-rose-500 hover:text-rose-700 font-medium">Load Default Data</button>
+          </div>
+        </div>
+
+        <!-- Section 2: Exchange Rates (ILS Anchor) -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+              ₪
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-base">Exchange Rates to ILS (₪)</h3>
+              <p class="text-xs text-slate-500">Live baseline conversion for foreign purchases.</p>
+            </div>
+          </div>
+
+          <div class="space-y-3 pt-1">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">USD ($) to ILS (₪)</label>
+              <div class="relative">
+                <input type="number" step="0.01" id="rate-usd" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800">
+                <span class="absolute right-3 top-2 text-xs font-bold text-slate-400">₪ / 1 USD</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">EUR (€) to ILS (₪)</label>
+              <div class="relative">
+                <input type="number" step="0.01" id="rate-eur" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-800">
+                <span class="absolute right-3 top-2 text-xs font-bold text-slate-400">₪ / 1 EUR</span>
+              </div>
+            </div>
+
+            <button onclick="saveRates()" class="w-full mt-2 px-4 py-2 bg-slate-900 text-white hover:bg-black rounded-xl text-xs font-semibold transition-colors">
+              Save Custom Rates
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 3: Payment Methods & Cards -->
+        <div class="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                💳
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-900 text-base">Configured Payment Methods</h3>
+                <p class="text-xs text-slate-500">Define cards, bank debit instructions (Hora'at Keva), or wallets.</p>
+              </div>
+            </div>
+            <button onclick="promptAddCard()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors">
+              + Add New Method
+            </button>
+          </div>
+
+          <div id="payment-methods-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: ADD / EDIT EXPENSE & PACKAGE -->
+  <div id="expense-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 my-8 overflow-hidden transform transition-all">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 id="modal-title" class="font-bold text-slate-900 text-lg">Add New Expense</h3>
+          <p class="text-xs text-slate-500">Enter transaction, recurrence, and package tracking details.</p>
+        </div>
+        <button onclick="closeExpenseModal()" class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-300">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <form id="expense-form" onsubmit="handleSaveExpense(event)" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <input type="hidden" id="entry-id">
+
+        <!-- Recurrence Selector Pill -->
+        <div class="flex p-1 bg-slate-100 rounded-xl text-xs font-semibold text-slate-600">
+          <button type="button" id="btn-type-regular" onclick="setTypeToggle('regular')" class="flex-1 py-1.5 rounded-lg bg-white text-indigo-700 shadow-sm transition-all">
+            One-Time Outlay
+          </button>
+          <button type="button" id="btn-type-recurring" onclick="setTypeToggle('recurring')" class="flex-1 py-1.5 rounded-lg hover:text-slate-900 transition-all">
+            🔄 Recurring / Subscription
+          </button>
+        </div>
+
+        <!-- Section: Basic Transaction Details -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Merchant / Title *</label>
+            <input type="text" id="entry-title" required placeholder="e.g. Amazon US, Shufersal, Netflix" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Date *</label>
+            <input type="date" id="entry-date" required class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Payment Method *</label>
+            <select id="entry-payment" required class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+              <!-- Rendered options -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Section: Financials & Currency -->
+        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-700">Financials & Currency</span>
+            <span class="text-xs text-indigo-600 font-medium" id="effective-preview">Effective: ₪0.00</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">Currency</label>
+              <select id="entry-currency" onchange="updateFxConversionPreview()" class="w-full px-2.5 py-1.5 text-sm rounded-xl border border-slate-200 bg-white font-semibold">
+                <option value="ILS">₪ ILS</option>
+                <option value="USD">$ USD</option>
+                <option value="EUR">€ EUR</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">Amount *</label>
+              <input type="number" step="0.01" id="entry-amount" required oninput="updateFxConversionPreview()" placeholder="0.00" class="w-full px-2.5 py-1.5 text-sm rounded-xl border border-slate-200 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">Exchange Rate</label>
+              <input type="number" step="0.001" id="entry-rate" oninput="updateFxConversionPreview()" class="w-full px-2.5 py-1.5 text-sm rounded-xl border border-slate-200 font-mono text-xs">
+            </div>
+          </div>
+        </div>
+
+        <!-- Conditional Section: Recurring Details -->
+        <div id="section-recurring-fields" class="hidden p-3.5 bg-purple-50/70 border border-purple-100 rounded-2xl space-y-3">
+          <div class="text-xs font-bold text-purple-900 flex items-center space-x-1.5">
+            <span>🔄 Subscription Details</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-purple-800 mb-1">Frequency</label>
+              <select id="entry-frequency" class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-purple-200 bg-white">
+                <option value="monthly">Monthly</option>
+                <option value="annual">Annual</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-purple-800 mb-1">Billing Day of Month</label>
+              <input type="number" min="1" max="31" id="entry-billing-day" value="10" class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-purple-200">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Online Shopping & Delivery Toggle -->
+        <div class="border border-slate-200 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <input type="checkbox" id="entry-has-delivery" onchange="toggleDeliverySection()" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+              <label for="entry-has-delivery" class="text-xs font-bold text-slate-800 cursor-pointer">
+                📦 Online Shopping & Package Tracking
+              </label>
+            </div>
+            <span class="text-xs text-slate-400">Optional</span>
+          </div>
+
+          <!-- Sub-fields: Tracking & 3rd Party Forwarder -->
+          <div id="section-delivery-fields" class="hidden space-y-3 pt-2 border-t border-slate-100">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs text-slate-600 mb-1">Primary Carrier</label>
+                <input type="text" id="entry-carrier" placeholder="e.g. Israel Post, DHL, Amazon, FedEx" class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200">
+              </div>
+              <div>
+                <label class="block text-xs text-slate-600 mb-1">Tracking Number / Link</label>
+                <input type="text" id="entry-tracking-num" placeholder="e.g. RR123456789IL" class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs text-slate-600 mb-1">Delivery Status</label>
+              <select id="entry-delivery-status" class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-white font-medium">
+                <option value="Ordered">Ordered (Awaiting Dispatch)</option>
+                <option value="At Forwarder">At 3rd-Party Forwarder Warehouse</option>
+                <option value="In Transit">In Transit to Israel</option>
+                <option value="Customs Clearance">Customs Clearance / Withholding</option>
+                <option value="Delivered">Delivered</option>
+              </select>
+            </div>
+
+            <!-- 3rd Party Freight Forwarder Box (UShops, Buy2USA, etc.) -->
+            <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-900">3rd-Party Freight Forwarder / Courier</span>
+                <span class="text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Secondary Shipping Leg</span>
+              </div>
+              <p class="text-[11px] text-amber-700">Add or update forwarder charges (e.g. UShops, Buy2USA, Shipito) after purchase:</p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="sm:col-span-1">
+                  <label class="block text-[11px] text-slate-600 mb-1">Forwarder Name</label>
+                  <input type="text" id="entry-forwarder-name" placeholder="e.g. UShops, Buy2USA" class="w-full px-2 py-1 text-xs rounded-lg border border-amber-200 bg-white">
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-600 mb-1">Shipping Fee (₪)</label>
+                  <input type="number" step="0.01" id="entry-forwarder-fee" oninput="updateFxConversionPreview()" placeholder="0.00" class="w-full px-2 py-1 text-xs rounded-lg border border-amber-200 bg-white font-semibold">
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-600 mb-1">Forwarder Tracking #</label>
+                  <input type="text" id="entry-forwarder-tracking" placeholder="Forwarder Waybill" class="w-full px-2 py-1 text-xs rounded-lg border border-amber-200 bg-white">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-100">
+          <button type="button" onclick="closeExpenseModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+          <button type="submit" class="px-5 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-xl shadow-md hover:bg-indigo-700 transition-colors">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: QUICK UPDATE FORWARDER FEE & STATUS -->
+  <div id="quick-forwarder-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-100 p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h4 class="font-bold text-slate-900 text-sm">Update 3rd-Party Forwarder Details</h4>
+        <button onclick="closeQuickForwarderModal()" class="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+      </div>
+      <input type="hidden" id="quick-fwd-entry-id">
+      
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Freight Forwarder Company Name</label>
+          <input type="text" id="quick-fwd-name" placeholder="e.g. UShops, Buy2USA, Shipito, Aramex" class="w-full px-3 py-2 border border-slate-200 rounded-xl">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Secondary Shipping Fee (₪ ILS)</label>
+          <input type="number" step="0.01" id="quick-fwd-fee" placeholder="0.00" class="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Forwarder Tracking # / Waybill</label>
+          <input type="text" id="quick-fwd-tracking" placeholder="Tracking code" class="w-full px-3 py-2 border border-slate-200 rounded-xl">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Current Transit Status</label>
+          <select id="quick-fwd-status" class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white">
+            <option value="Ordered">Ordered (Awaiting Dispatch)</option>
+            <option value="At Forwarder">At 3rd-Party Forwarder Warehouse</option>
+            <option value="In Transit">In Transit to Israel</option>
+            <option value="Customs Clearance">Customs Clearance / Withholding</option>
+            <option value="Delivered">Delivered</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="closeQuickForwarderModal()" class="px-3 py-1.5 text-xs text-slate-600 rounded-lg hover:bg-slate-100">Cancel</button>
+        <button onclick="saveQuickForwarderUpdate()" class="px-4 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Save Forwarder Info</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Storage Key
+    const STORAGE_KEY = 'shekeltrack_db_v1';
+
+    // Baseline Default Mock Data representing realistic Israeli user context
+    const DEFAULT_DATA = {
+      rates: {
+        USD: 3.72,
+        EUR: 3.98
+      },
+      paymentMethods: [
+        { id: 'card_max_mc', name: 'Max Mastercard', last4: '4192', color: 'bg-blue-600', type: 'Credit Card' },
+        { id: 'card_isracard_visa', name: 'Isracard Visa Platinum', last4: '8834', color: 'bg-amber-600', type: 'Credit Card' },
+        { id: 'card_cal_diners', name: 'CAL Diners Club', last4: '1029', color: 'bg-slate-800', type: 'Credit Card' },
+        { id: 'bank_transfer', name: 'Bank Leumi (Hora\'at Keva)', last4: '0412', color: 'bg-emerald-600', type: 'Bank Debit' },
+        { id: 'cash_wallet', name: 'Cash / Bit Wallet', last4: '', color: 'bg-purple-600', type: 'Direct' }
+      ],
+      expenses: [
+        {
+          id: 'exp_001',
+          title: 'Amazon US - Mechanical Keyboard & Switch kit',
+          date: '2026-09-28',
+          amount: 89.99,
+          currency: 'USD',
+          rate: 3.72,
+          paymentId: 'card_max_mc',
+          isRecurring: false,
+          frequency: 'monthly',
+          billingDay: 1,
+          hasDelivery: true,
+          carrier: 'Amazon Logistics',
+          trackingNumber: 'TBA309482910',
+          forwarderName: 'UShops',
+          forwarderFeeILS: 58.00,
+          forwarderTracking: 'USH-IL-99482',
+          deliveryStatus: 'In Transit',
+          notes: 'Black Friday precursor special'
+        },
+        {
+          id: 'exp_002',
+          title: 'AliExpress - Smart Home Sensors & Hub',
+          date: '2026-10-01',
+          amount: 45.50,
+          currency: 'USD',
+          rate: 3.72,
+          paymentId: 'card_isracard_visa',
+          isRecurring: false,
+          frequency: 'monthly',
+          billingDay: 1,
+          hasDelivery: true,
+          carrier: 'Israel Post (Doar Israel)',
+          trackingNumber: 'LP0061982490IL',
+          forwarderName: '',
+          forwarderFeeILS: 0,
+          forwarderTracking: '',
+          deliveryStatus: 'Customs Clearance',
+          notes: 'Zigbee presence detectors'
+        },
+        {
+          id: 'exp_003',
+          title: 'Netflix 4K Ultra HD',
+          date: '2026-10-02',
+          amount: 54.90,
+          currency: 'ILS',
+          rate: 1.0,
+          paymentId: 'card_max_mc',
+          isRecurring: true,
+          frequency: 'monthly',
+          billingDay: 10,
+          hasDelivery: false,
+          carrier: '',
+          trackingNumber: '',
+          forwarderName: '',
+          forwarderFeeILS: 0,
+          forwarderTracking: '',
+          deliveryStatus: 'Delivered',
+          notes: 'Standard family plan'
+        },
+        {
+          id: 'exp_004',
+          title: 'Shufersal Deal Groceries',
+          date: '2026-10-03',
+          amount: 482.30,
+          currency: 'ILS',
+          rate: 1.0,
+          paymentId: 'card_isracard_visa',
+          isRecurring: false,
+          frequency: 'monthly',
+          billingDay: 1,
+          hasDelivery: false,
+          carrier: '',
+          trackingNumber: '',
+          forwarderName: '',
+          forwarderFeeILS: 0,
+          forwarderTracking: '',
+          deliveryStatus: 'Delivered',
+          notes: 'Weekly household restocking'
+        },
+        {
+          id: 'exp_005',
+          title: 'Spotify Family Subscription',
+          date: '2026-10-01',
+          amount: 35.90,
+          currency: 'ILS',
+          rate: 1.0,
+          paymentId: 'bank_transfer',
+          isRecurring: true,
+          frequency: 'monthly',
+          billingDay: 15,
+          hasDelivery: false,
+          carrier: '',
+          trackingNumber: '',
+          forwarderName: '',
+          forwarderFeeILS: 0,
+          forwarderTracking: '',
+          deliveryStatus: 'Delivered',
+          notes: 'Music streaming'
+        },
+        {
+          id: 'exp_006',
+          title: 'B&H Photo - Mirrorless Lens Hood & Filters',
+          date: '2026-10-04',
+          amount: 110.00,
+          currency: 'USD',
+          rate: 3.72,
+          paymentId: 'card_cal_diners',
+          isRecurring: false,
+          frequency: 'monthly',
+          billingDay: 1,
+          hasDelivery: true,
+          carrier: 'FedEx US',
+          trackingNumber: '782910482910',
+          forwarderName: 'Buy2USA',
+          forwarderFeeILS: 45.00,
+          forwarderTracking: 'B2U-772184',
+          deliveryStatus: 'At Forwarder',
+          notes: 'Waiting for consolidation'
+        }
+      ]
+    };
+
+    // Main App State
+    let appState = null;
+    let currentExpenseType = 'regular'; // 'regular' or 'recurring'
+
+    function initApp() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          appState = JSON.parse(stored);
+        } catch (e) {
+          console.error('Failed to parse localStorage, resetting to default data', e);
+          appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+          saveState();
+        }
+      } else {
+        appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        saveState();
+      }
+
+      // Populate FX settings inputs
+      document.getElementById('rate-usd').value = appState.rates.USD || 3.72;
+      document.getElementById('rate-eur').value = appState.rates.EUR || 3.98;
+
+      populatePaymentSelects();
+      refreshAllViews();
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+    }
+
+    function populatePaymentSelects() {
+      const filterSelect = document.getElementById('filter-payment');
+      const entrySelect = document.getElementById('entry-payment');
+      
+      const cards = appState.paymentMethods;
+
+      // Filter select dropdown
+      filterSelect.innerHTML = '<option value="ALL">All Payment Methods</option>';
+      cards.forEach(card => {
+        filterSelect.innerHTML += `<option value="${card.id}">${card.name} ${card.last4 ? '(' + card.last4 + ')' : ''}</option>`;
+      });
+
+      // Entry modal select dropdown
+      entrySelect.innerHTML = '';
+      cards.forEach(card => {
+        entrySelect.innerHTML += `<option value="${card.id}">${card.name} ${card.last4 ? '• • • • ' + card.last4 : ''} [${card.type}]</option>`;
+      });
+
+      // Settings Card Grid
+      renderSettingsCards();
+    }
+
+    function renderSettingsCards() {
+      const container = document.getElementById('payment-methods-grid');
+      container.innerHTML = '';
+
+      appState.paymentMethods.forEach(card => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between';
+        cardEl.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg ${card.color || 'bg-slate-700'} text-white flex items-center justify-center font-mono text-xs font-bold">
+              ${card.name.substring(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-800">${card.name}</div>
+              <div class="text-[11px] text-slate-500">${card.type} ${card.last4 ? '• ending ' + card.last4 : ''}</div>
+            </div>
+          </div>
+          <button onclick="deleteCard('${card.id}')" class="text-xs text-rose-500 hover:text-rose-700 p-1">✕</button>
+        `;
+        container.appendChild(cardEl);
+      });
+    }
+
+    function promptAddCard() {
+      const name = prompt('Enter payment method name (e.g. "Max Executive", "Bit", "Poalim Direct"):');
+      if (!name) return;
+      const last4 = prompt('Enter last 4 digits (or leave blank for wallets/cash):') || '';
+      const type = prompt('Enter card/method type (e.g. "Credit Card", "Debit", "Wallet"):') || 'Credit Card';
+
+      const newCard = {
+        id: 'card_' + Date.now(),
+        name: name.trim(),
+        last4: last4.trim(),
+        type: type.trim(),
+        color: 'bg-indigo-600'
+      };
+
+      appState.paymentMethods.push(newCard);
+      saveState();
+      populatePaymentSelects();
+      refreshAllViews();
+    }
+
+    function deleteCard(cardId) {
+      if (appState.paymentMethods.length <= 1) {
+        showNotice('You must keep at least one payment method.');
+        return;
+      }
+      appState.paymentMethods = appState.paymentMethods.filter(c => c.id !== cardId);
+      saveState();
+      populatePaymentSelects();
+      refreshAllViews();
+    }
+
+    function switchTab(tabName) {
+      const tabs = ['dashboard', 'expenses', 'recurring', 'packages', 'settings'];
+      tabs.forEach(t => {
+        const viewEl = document.getElementById(`view-${t}`);
+        const btnEl = document.getElementById(`tab-btn-${t}`);
+        if (t === tabName) {
+          viewEl.classList.remove('hidden');
+          btnEl.className = 'nav-tab px-3.5 py-1.5 rounded-lg text-indigo-600 bg-indigo-50 font-semibold flex items-center space-x-1.5 whitespace-nowrap transition-colors';
+        } else {
+          viewEl.classList.add('hidden');
+          btnEl.className = 'nav-tab px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1.5 whitespace-nowrap transition-colors';
+        }
+      });
+      refreshAllViews();
+    }
+
+    function calculateEffectiveILS(item) {
+      const baseCost = item.currency === 'ILS' ? Number(item.amount) : Number(item.amount) * (Number(item.rate) || 1);
+      const forwarderFee = item.hasDelivery && item.forwarderFeeILS ? Number(item.forwarderFeeILS) : 0;
+      return baseCost + forwarderFee;
+    }
+
+    function formatILS(amount) {
+      return '₪' + Number(amount || 0).toLocaleString('en-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function renderDashboard() {
+      let totalEffectiveILS = 0;
+      let totalForeignILS = 0;
+      let totalForeignUSD = 0;
+      let totalForeignEUR = 0;
+      let monthlyRecurringILS = 0;
+      let activeSubsCount = 0;
+      let activeDeliveriesCount = 0;
+      let forwarderCount = 0;
+
+      const cardSpendMap = {};
+      appState.paymentMethods.forEach(card => cardSpendMap[card.id] = 0);
+
+      appState.expenses.forEach(item => {
+        const effective = calculateEffectiveILS(item);
+        totalEffectiveILS += effective;
+
+        // Foreign spend tracking
+        if (item.currency === 'USD') {
+          totalForeignILS += effective;
+          totalForeignUSD += Number(item.amount);
+        } else if (item.currency === 'EUR') {
+          totalForeignILS += effective;
+          totalForeignEUR += Number(item.amount);
+        }
+
+        // Subscriptions
+        if (item.isRecurring) {
+          activeSubsCount++;
+          monthlyRecurringILS += calculateEffectiveILS(item);
+        }
+
+        // Packages & Forwarders
+        if (item.hasDelivery && item.deliveryStatus !== 'Delivered') {
+          activeDeliveriesCount++;
+          if (item.forwarderName && item.forwarderName.trim() !== '') {
+            forwarderCount++;
+          }
+        }
+
+        // Card spend mapping
+        if (cardSpendMap[item.paymentId] !== undefined) {
+          cardSpendMap[item.paymentId] += effective;
+        }
+      });
+
+      // Update stat counters
+      document.getElementById('dash-total-ils').textContent = formatILS(totalEffectiveILS);
+      document.getElementById('dash-foreign-ils').textContent = formatILS(totalForeignILS);
+      document.getElementById('dash-foreign-breakdown').textContent = `$${totalForeignUSD.toFixed(2)} USD | €${totalForeignEUR.toFixed(2)} EUR`;
+      document.getElementById('dash-recurring-monthly').textContent = formatILS(monthlyRecurringILS);
+      document.getElementById('dash-active-subs-count').textContent = activeSubsCount;
+      document.getElementById('dash-active-packages').textContent = activeDeliveriesCount;
+      document.getElementById('dash-forwarder-count').textContent = forwarderCount;
+
+      // Update Badges on tabs
+      document.getElementById('badge-total-expenses').textContent = appState.expenses.length;
+      document.getElementById('badge-recurring-count').textContent = activeSubsCount;
+      document.getElementById('badge-in-transit').textContent = activeDeliveriesCount;
+
+      // Render Spend by Payment Method breakdown
+      const cardsBreakdownEl = document.getElementById('dash-cards-breakdown');
+      cardsBreakdownEl.innerHTML = '';
+      appState.paymentMethods.forEach(card => {
+        const spend = cardSpendMap[card.id] || 0;
+        const percentage = totalEffectiveILS > 0 ? ((spend / totalEffectiveILS) * 100).toFixed(0) : 0;
+        
+        cardsBreakdownEl.innerHTML += `
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-semibold text-slate-700 flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full ${card.color || 'bg-slate-400'}"></span>
+                <span>${card.name} ${card.last4 ? '(' + card.last4 + ')' : ''}</span>
+              </span>
+              <span class="font-mono font-bold text-slate-900">${formatILS(spend)} <span class="text-slate-400 font-normal">(${percentage}%)</span></span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div class="${card.color || 'bg-indigo-600'} h-2 rounded-full" style="width: ${percentage}%"></div>
+            </div>
+          </div>
+        `;
+      });
+
+      // Render Active Inbound Deliveries Preview
+      const activePackagesListEl = document.getElementById('dash-active-packages-list');
+      activePackagesListEl.innerHTML = '';
+      const activePackages = appState.expenses.filter(e => e.hasDelivery && e.deliveryStatus !== 'Delivered');
+
+      if (activePackages.length === 0) {
+        activePackagesListEl.innerHTML = `
+          <div class="py-6 text-center text-slate-400 text-xs">
+            🎉 All packages have been delivered! No active shipments in transit.
+          </div>
+        `;
+      } else {
+        activePackages.slice(0, 3).forEach(pkg => {
+          activePackagesListEl.innerHTML += `
+            <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div class="space-y-0.5">
+                <div class="font-semibold text-slate-900 text-xs">${pkg.title}</div>
+                <div class="text-[11px] text-slate-500 flex items-center space-x-2">
+                  <span>Carrier: <strong>${pkg.carrier || 'Standard'}</strong></span>
+                  ${pkg.forwarderName ? `<span class="bg-amber-100 text-amber-800 px-1 rounded font-bold">Via ${pkg.forwarderName}</span>` : ''}
+                </div>
+              </div>
+              <div class="flex items-center space-x-3">
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${getStatusBadgeClass(pkg.deliveryStatus)}">
+                  ${pkg.deliveryStatus}
+                </span>
+                <button onclick="openQuickForwarderModal('${pkg.id}')" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                  Update &rarr;
+                </button>
+              </div>
+            </div>
+          `;
+        });
+      }
+    }
+
+    function getStatusBadgeClass(status) {
+      switch(status) {
+        case 'Ordered': return 'bg-blue-100 text-blue-800';
+        case 'At Forwarder': return 'bg-purple-100 text-purple-800';
+        case 'In Transit': return 'bg-amber-100 text-amber-800';
+        case 'Customs Clearance': return 'bg-rose-100 text-rose-800 font-bold';
+        case 'Delivered': return 'bg-emerald-100 text-emerald-800';
+        default: return 'bg-slate-100 text-slate-800';
+      }
+    }
+
+    function renderExpensesTable() {
+      const tbody = document.getElementById('expenses-table-body');
+      const emptyState = document.getElementById('expenses-empty-state');
+      tbody.innerHTML = '';
+
+      const filterCurr = document.getElementById('filter-currency').value;
+      const filterPayment = document.getElementById('filter-payment').value;
+      const filterType = document.getElementById('filter-type').value;
+      const filterSearch = document.getElementById('filter-search').value.toLowerCase().trim();
+
+      const filtered = appState.expenses.filter(item => {
+        if (filterCurr !== 'ALL' && item.currency !== filterCurr) return false;
+        if (filterPayment !== 'ALL' && item.paymentId !== filterPayment) return false;
+        if (filterType === 'regular' && item.isRecurring) return false;
+        if (filterType === 'recurring' && !item.isRecurring) return false;
+        if (filterType === 'package' && !item.hasDelivery) return false;
+        if (filterSearch) {
+          const matchTitle = item.title.toLowerCase().includes(filterSearch);
+          const matchCarrier = (item.carrier || '').toLowerCase().includes(filterSearch);
+          const matchForwarder = (item.forwarderName || '').toLowerCase().includes(filterSearch);
+          const matchNotes = (item.notes || '').toLowerCase().includes(filterSearch);
+          if (!matchTitle && !matchCarrier && !matchForwarder && !matchNotes) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      // Sort by date descending
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      filtered.forEach(item => {
+        const paymentCard = appState.paymentMethods.find(c => c.id === item.paymentId) || { name: 'Card', last4: '' };
+        const effectiveILS = calculateEffectiveILS(item);
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80 transition-colors';
+        tr.innerHTML = `
+          <td class="py-3 px-4">
+            <div class="font-semibold text-slate-900">${item.title}</div>
+            <div class="text-xs text-slate-400 flex items-center space-x-2 mt-0.5">
+              <span>${item.date}</span>
+              ${item.isRecurring ? '<span class="text-purple-600 bg-purple-50 px-1.5 rounded font-semibold text-[10px]">🔄 Day ' + item.billingDay + '</span>' : ''}
+            </div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center space-x-1.5 text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
+              <span>${paymentCard.name}</span>
+              ${paymentCard.last4 ? '<span class="font-mono text-slate-400">••' + paymentCard.last4 + '</span>' : ''}
+            </span>
+          </td>
+          <td class="py-3 px-4 font-mono font-medium text-xs">
+            <div>
+              ${item.currency === 'USD' ? '$' : item.currency === 'EUR' ? '€' : '₪'}${Number(item.amount).toFixed(2)}
+            </div>
+            ${item.currency !== 'ILS' ? `<div class="text-[10px] text-slate-400">@ ₪${item.rate}</div>` : ''}
+          </td>
+          <td class="py-3 px-4 text-xs">
+            ${item.hasDelivery ? `
+              <div class="flex flex-col">
+                <span class="font-semibold ${item.forwarderFeeILS > 0 ? 'text-amber-800' : 'text-slate-400'}">
+                  ${item.forwarderFeeILS > 0 ? formatILS(item.forwarderFeeILS) : 'None / Included'}
+                </span>
+                <span class="text-[11px] text-slate-500">${item.forwarderName || 'Direct'}</span>
+              </div>
+            ` : '<span class="text-slate-300">-</span>'}
+          </td>
+          <td class="py-3 px-4 font-bold font-mono text-slate-900 text-sm">
+            ${formatILS(effectiveILS)}
+          </td>
+          <td class="py-3 px-4 text-xs">
+            ${item.hasDelivery ? `
+              <button onclick="openQuickForwarderModal('${item.id}')" class="px-2 py-0.5 rounded-full text-[11px] font-semibold cursor-pointer hover:opacity-80 transition-opacity ${getStatusBadgeClass(item.deliveryStatus)}">
+                ${item.deliveryStatus}
+              </button>
+            ` : '<span class="text-slate-300 text-xs">N/A</span>'}
+          </td>
+          <td class="py-3 px-4 text-right space-x-2 text-xs">
+            <button onclick="editExpense('${item.id}')" class="text-indigo-600 hover:text-indigo-900 font-semibold">Edit</button>
+            <button onclick="deleteExpense('${item.id}')" class="text-rose-500 hover:text-rose-700">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderRecurringHub() {
+      const container = document.getElementById('recurring-cards-container');
+      container.innerHTML = '';
+
+      const recurringItems = appState.expenses.filter(i => i.isRecurring);
+      let monthlyTotal = 0;
+
+      recurringItems.forEach(item => {
+        const effective = calculateEffectiveILS(item);
+        monthlyTotal += effective;
+        const paymentCard = appState.paymentMethods.find(c => c.id === item.paymentId) || { name: 'Payment Method', last4: '' };
+
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3';
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">
+                Billing Cycle: Day ${item.billingDay || 1}
+              </span>
+              <h4 class="font-bold text-slate-900 text-base mt-1">${item.title}</h4>
+              <p class="text-xs text-slate-500">${paymentCard.name} ${paymentCard.last4 ? '(' + paymentCard.last4 + ')' : ''}</p>
+            </div>
+            <div class="text-right">
+              <div class="text-lg font-black text-slate-900 font-mono">${formatILS(effective)}</div>
+              <div class="text-[11px] text-slate-400 font-mono">${item.currency !== 'ILS' ? item.currency + ' ' + item.amount : 'Billed in ILS'}</div>
+            </div>
+          </div>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span class="text-slate-500">Frequency: <strong>${item.frequency || 'Monthly'}</strong></span>
+            <div class="space-x-2">
+              <button onclick="editExpense('${item.id}')" class="text-indigo-600 hover:text-indigo-800 font-semibold">Configure</button>
+              <button onclick="deleteExpense('${item.id}')" class="text-rose-500 hover:text-rose-700">Cancel</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById('recurring-total-header').textContent = formatILS(monthlyTotal);
+
+      if (recurringItems.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-400">
+            No active recurring subscriptions found. Click "Add Expense" and choose "Recurring / Subscription".
+          </div>
+        `;
+      }
+    }
+
+    function renderPackagesHub() {
+      const container = document.getElementById('packages-cards-container');
+      container.innerHTML = '';
+
+      const packages = appState.expenses.filter(i => i.hasDelivery);
+
+      if (packages.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-400">
+            No package deliveries currently logged. You can link packages to any expense.
+          </div>
+        `;
+        return;
+      }
+
+      packages.forEach(pkg => {
+        const itemCostILS = pkg.currency === 'ILS' ? pkg.amount : (pkg.amount * (pkg.rate || 1));
+        const forwarderCostILS = Number(pkg.forwarderFeeILS || 0);
+        const totalCombinedILS = itemCostILS + forwarderCostILS;
+        const paymentCard = appState.paymentMethods.find(c => c.id === pkg.paymentId) || { name: 'Card' };
+
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4';
+        card.innerHTML = `
+          <!-- Header -->
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center space-x-2 mb-1">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusBadgeClass(pkg.deliveryStatus)}">
+                  ${pkg.deliveryStatus}
+                </span>
+                ${pkg.forwarderName ? `<span class="bg-amber-100 text-amber-900 text-xs px-2 py-0.5 rounded-full font-bold">Forwarder: ${pkg.forwarderName}</span>` : ''}
+              </div>
+              <h3 class="font-bold text-slate-900 text-base">${pkg.title}</h3>
+              <p class="text-xs text-slate-500">Purchased on ${pkg.date} via ${paymentCard.name}</p>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-slate-400 block">Total Combined Landed Cost</span>
+              <span class="text-xl font-black text-slate-900 font-mono">${formatILS(totalCombinedILS)}</span>
+            </div>
+          </div>
+
+          <!-- Multi-Leg Journey Tracker -->
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-2">
+            <div class="font-semibold text-slate-700 flex items-center justify-between">
+              <span>Logistics Breakdown & Tracking</span>
+              <button onclick="openQuickForwarderModal('${pkg.id}')" class="text-indigo-600 hover:text-indigo-800 text-[11px] font-bold">
+                ✎ Edit Shipping / Forwarder
+              </button>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600">
+              <!-- Leg 1 -->
+              <div class="p-2 bg-white rounded-lg border border-slate-200">
+                <div class="text-[10px] uppercase font-bold text-slate-400">Leg 1: Store to Origin / Forwarder</div>
+                <div class="font-semibold text-slate-800">${pkg.carrier || 'Direct Carrier'}</div>
+                <div class="text-[11px] font-mono text-slate-500">${pkg.trackingNumber || 'No tracking provided'}</div>
+              </div>
+              <!-- Leg 2 -->
+              <div class="p-2 bg-white rounded-lg border border-slate-200">
+                <div class="text-[10px] uppercase font-bold text-amber-700">Leg 2: Forwarder to Israel</div>
+                <div class="font-semibold text-slate-800">${pkg.forwarderName || 'Direct Local Delivery'}</div>
+                <div class="text-[11px] font-mono text-slate-500">${pkg.forwarderTracking || 'Pending secondary waybill'}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cost Breakdown footer -->
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <div class="flex items-center space-x-3">
+              <span>Item: <strong>${pkg.currency === 'USD' ? '$' : pkg.currency === 'EUR' ? '€' : '₪'}${pkg.amount}</strong> (${formatILS(itemCostILS)})</span>
+              <span>+</span>
+              <span>Forwarder: <strong>${pkg.forwarderFeeILS ? formatILS(pkg.forwarderFeeILS) : '₪0'}</strong></span>
+            </div>
+            <div class="space-x-2">
+              <button onclick="editExpense('${pkg.id}')" class="text-indigo-600 font-semibold hover:underline">Full Edit</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openExpenseModal(forceDelivery = false) {
+      document.getElementById('expense-form').reset();
+      document.getElementById('entry-id').value = '';
+      document.getElementById('modal-title').textContent = 'Add New Expense';
+      
+      // Default to today
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('entry-date').value = today;
+
+      // Default rate
+      document.getElementById('entry-currency').value = 'ILS';
+      document.getElementById('entry-rate').value = '1.0';
+
+      setTypeToggle('regular');
+
+      const deliveryCheckbox = document.getElementById('entry-has-delivery');
+      deliveryCheckbox.checked = forceDelivery;
+      toggleDeliverySection();
+
+      updateFxConversionPreview();
+      document.getElementById('expense-modal').classList.remove('hidden');
+    }
+
+    function closeExpenseModal() {
+      document.getElementById('expense-modal').classList.add('hidden');
+    }
+
+    function setTypeToggle(type) {
+      currentExpenseType = type;
+      const btnReg = document.getElementById('btn-type-regular');
+      const btnRec = document.getElementById('btn-type-recurring');
+      const recFields = document.getElementById('section-recurring-fields');
+
+      if (type === 'regular') {
+        btnReg.className = 'flex-1 py-1.5 rounded-lg bg-white text-indigo-700 shadow-sm transition-all font-semibold';
+        btnRec.className = 'flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all font-medium';
+        recFields.classList.add('hidden');
+      } else {
+        btnRec.className = 'flex-1 py-1.5 rounded-lg bg-white text-indigo-700 shadow-sm transition-all font-semibold';
+        btnReg.className = 'flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all font-medium';
+        recFields.classList.remove('hidden');
+      }
+    }
+
+    function toggleDeliverySection() {
+      const isChecked = document.getElementById('entry-has-delivery').checked;
+      const section = document.getElementById('section-delivery-fields');
+      if (isChecked) {
+        section.classList.remove('hidden');
+      } else {
+        section.classList.add('hidden');
+      }
+      updateFxConversionPreview();
+    }
+
+    function updateFxConversionPreview() {
+      const curr = document.getElementById('entry-currency').value;
+      const amount = parseFloat(document.getElementById('entry-amount').value) || 0;
+      let rateInput = document.getElementById('entry-rate');
+
+      // Autofill default rate if user changes currency and rate is default
+      if (curr === 'ILS') {
+        rateInput.value = '1.0';
+      } else if (curr === 'USD' && (rateInput.value === '1.0' || rateInput.value === '')) {
+        rateInput.value = appState.rates.USD || 3.72;
+      } else if (curr === 'EUR' && (rateInput.value === '1.0' || rateInput.value === '')) {
+        rateInput.value = appState.rates.EUR || 3.98;
+      }
+
+      const rate = parseFloat(rateInput.value) || 1.0;
+      const fwdFee = parseFloat(document.getElementById('entry-forwarder-fee').value) || 0;
+      const effectiveILS = (amount * rate) + fwdFee;
+
+      document.getElementById('effective-preview').textContent = `Effective Total: ${formatILS(effectiveILS)}`;
+    }
+
+    function handleSaveExpense(event) {
+      event.preventDefault();
+
+      const id = document.getElementById('entry-id').value || ('exp_' + Date.now());
+      const title = document.getElementById('entry-title').value.trim();
+      const date = document.getElementById('entry-date').value;
+      const paymentId = document.getElementById('entry-payment').value;
+      const currency = document.getElementById('entry-currency').value;
+      const amount = parseFloat(document.getElementById('entry-amount').value) || 0;
+      const rate = parseFloat(document.getElementById('entry-rate').value) || 1.0;
+
+      const isRecurring = (currentExpenseType === 'recurring');
+      const frequency = document.getElementById('entry-frequency').value;
+      const billingDay = parseInt(document.getElementById('entry-billing-day').value) || 1;
+
+      const hasDelivery = document.getElementById('entry-has-delivery').checked;
+      const carrier = document.getElementById('entry-carrier').value.trim();
+      const trackingNumber = document.getElementById('entry-tracking-num').value.trim();
+      const deliveryStatus = document.getElementById('entry-delivery-status').value;
+      const forwarderName = document.getElementById('entry-forwarder-name').value.trim();
+      const forwarderFeeILS = parseFloat(document.getElementById('entry-forwarder-fee').value) || 0;
+      const forwarderTracking = document.getElementById('entry-forwarder-tracking').value.trim();
+
+      const existingIndex = appState.expenses.findIndex(e => e.id === id);
+
+      const expenseObject = {
+        id,
+        title,
+        date,
+        paymentId,
+        currency,
+        amount,
+        rate,
+        isRecurring,
+        frequency,
+        billingDay,
+        hasDelivery,
+        carrier,
+        trackingNumber,
+        deliveryStatus,
+        forwarderName,
+        forwarderFeeILS,
+        forwarderTracking,
+        notes: ''
+      };
+
+      if (existingIndex >= 0) {
+        appState.expenses[existingIndex] = expenseObject;
+      } else {
+        appState.expenses.unshift(expenseObject);
+      }
+
+      saveState();
+      closeExpenseModal();
+      refreshAllViews();
+    }
+
+    function editExpense(id) {
+      const item = appState.expenses.find(e => e.id === id);
+      if (!item) return;
+
+      document.getElementById('entry-id').value = item.id;
+      document.getElementById('entry-title').value = item.title;
+      document.getElementById('entry-date').value = item.date;
+      document.getElementById('entry-payment').value = item.paymentId;
+      document.getElementById('entry-currency').value = item.currency;
+      document.getElementById('entry-amount').value = item.amount;
+      document.getElementById('entry-rate').value = item.rate || 1.0;
+
+      setTypeToggle(item.isRecurring ? 'recurring' : 'regular');
+      document.getElementById('entry-frequency').value = item.frequency || 'monthly';
+      document.getElementById('entry-billing-day').value = item.billingDay || 1;
+
+      document.getElementById('entry-has-delivery').checked = !!item.hasDelivery;
+      toggleDeliverySection();
+
+      document.getElementById('entry-carrier').value = item.carrier || '';
+      document.getElementById('entry-tracking-num').value = item.trackingNumber || '';
+      document.getElementById('entry-delivery-status').value = item.deliveryStatus || 'Ordered';
+      document.getElementById('entry-forwarder-name').value = item.forwarderName || '';
+      document.getElementById('entry-forwarder-fee').value = item.forwarderFeeILS || '';
+      document.getElementById('entry-forwarder-tracking').value = item.forwarderTracking || '';
+
+      document.getElementById('modal-title').textContent = 'Edit Expense & Delivery';
+      updateFxConversionPreview();
+      document.getElementById('expense-modal').classList.remove('hidden');
+    }
+
+    function deleteExpense(id) {
+      showConfirmDialog('Are you sure you want to delete this transaction?', () => {
+        appState.expenses = appState.expenses.filter(e => e.id !== id);
+        saveState();
+        refreshAllViews();
+      });
+    }
+
+    function openQuickForwarderModal(id) {
+      const item = appState.expenses.find(e => e.id === id);
+      if (!item) return;
+
+      document.getElementById('quick-fwd-entry-id').value = item.id;
+      document.getElementById('quick-fwd-name').value = item.forwarderName || '';
+      document.getElementById('quick-fwd-fee').value = item.forwarderFeeILS || '';
+      document.getElementById('quick-fwd-tracking').value = item.forwarderTracking || '';
+      document.getElementById('quick-fwd-status').value = item.deliveryStatus || 'Ordered';
+
+      document.getElementById('quick-forwarder-modal').classList.remove('hidden');
+    }
+
+    function closeQuickForwarderModal() {
+      document.getElementById('quick-forwarder-modal').classList.add('hidden');
+    }
+
+    function saveQuickForwarderUpdate() {
+      const id = document.getElementById('quick-fwd-entry-id').value;
+      const item = appState.expenses.find(e => e.id === id);
+      if (!item) return;
+
+      item.forwarderName = document.getElementById('quick-fwd-name').value.trim();
+      item.forwarderFeeILS = parseFloat(document.getElementById('quick-fwd-fee').value) || 0;
+      item.forwarderTracking = document.getElementById('quick-fwd-tracking').value.trim();
+      item.deliveryStatus = document.getElementById('quick-fwd-status').value;
+      item.hasDelivery = true; // Ensure package flag is active
+
+      saveState();
+      closeQuickForwarderModal();
+      refreshAllViews();
+    }
+
+    function saveRates() {
+      const usd = parseFloat(document.getElementById('rate-usd').value) || 3.72;
+      const eur = parseFloat(document.getElementById('rate-eur').value) || 3.98;
+
+      appState.rates.USD = usd;
+      appState.rates.EUR = eur;
+      saveState();
+      refreshAllViews();
+      showNotice('Exchange rates saved successfully!');
+    }
+
+    function refreshAllViews() {
+      renderDashboard();
+      renderExpensesTable();
+      renderRecurringHub();
+      renderPackagesHub();
+    }
+
+    function exportDatabaseJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `shekeltrack_backup_${dateStr}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function triggerQuickExport() {
+      exportDatabaseJSON();
+      showNotice('Backup JSON exported. Save it to Google Drive or send it to your other devices.');
+    }
+
+    function importDatabaseJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && parsed.expenses && parsed.paymentMethods) {
+            appState = parsed;
+            saveState();
+            populatePaymentSelects();
+            refreshAllViews();
+            showNotice('Database restored successfully from backup!');
+          } else {
+            showNotice('Invalid JSON backup file structure.');
+          }
+        } catch (err) {
+          showNotice('Failed to parse the backup JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function exportToCSV() {
+      let csv = 'ID,Date,Merchant,PaymentMethod,Currency,Amount,Rate,ForwarderName,ForwarderFeeILS,TotalEffectiveILS,DeliveryStatus,TrackingNumber\n';
+
+      appState.expenses.forEach(item => {
+        const paymentCard = appState.paymentMethods.find(c => c.id === item.paymentId) || { name: 'Card' };
+        const effective = calculateEffectiveILS(item);
+        
+        const row = [
+          item.id,
+          item.date,
+          `"${(item.title || '').replace(/"/g, '""')}"`,
+          `"${paymentCard.name}"`,
+          item.currency,
+          item.amount,
+          item.rate || 1.0,
+          `"${item.forwarderName || ''}"`,
+          item.forwarderFeeILS || 0,
+          effective.toFixed(2),
+          `"${item.deliveryStatus || ''}"`,
+          `"${item.trackingNumber || ''}"`
+        ];
+        csv += row.join(',') + '\n';
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `expenses_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function resetToMockData() {
+      showConfirmDialog('Reset all data to default demo state? Custom entries will be overwritten.', () => {
+        appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        saveState();
+        populatePaymentSelects();
+        refreshAllViews();
+        showNotice('Sample data restored.');
+      });
+    }
+
+    function showNotice(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-lg border border-slate-700 flex items-center space-x-2 animate-bounce';
+      toast.innerHTML = `<span>ℹ️</span><span>${msg}</span>`;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 3500);
+    }
+
+    function showConfirmDialog(message, onConfirm) {
+      const overlay = document.createElement('div');
+      overlay.className = 'fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4';
+      overlay.innerHTML = `
+        <div class="bg-white max-w-sm w-full rounded-2xl p-5 shadow-2xl space-y-4">
+          <h4 class="font-bold text-slate-900 text-sm">Confirmation</h4>
+          <p class="text-xs text-slate-600">${message}</p>
+          <div class="flex justify-end space-x-2 pt-2">
+            <button id="conf-cancel" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+            <button id="conf-ok" class="px-4 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-lg">Confirm</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      overlay.querySelector('#conf-cancel').onclick = () => overlay.remove();
+      overlay.querySelector('#conf-ok').onclick = () => {
+        overlay.remove();
+        onConfirm();
+      };
+    }
+
+    // Window load entrypoint
+    window.onload = function() {
+      initApp();
+    };
+  </script>
+</body>
+</html>
