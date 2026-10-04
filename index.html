@@ -110,9 +110,20 @@
             <span id="txCount" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">0</span>
           </div>
           <div class="bg-white p-4 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
-            <span class="text-xs font-medium text-slate-500 block">Current FX Rates</span>
-            <span class="text-xs font-medium text-slate-700 mt-2 block">1 USD = <span id="fxUsdRate">3.70</span> ILS</span>
-            <span class="text-xs font-medium text-slate-700 block">1 EUR = <span id="fxEurRate">4.00</span> ILS</span>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-500 block">Live FX Rates (to ILS)</span>
+              <span id="fxBadge" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">Loading...</span>
+            </div>
+            <div class="mt-2 space-y-1">
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>1 USD ($)</span>
+                <span class="font-bold text-slate-900">₪<span id="fxUsdRate">--</span></span>
+              </div>
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>1 EUR (€)</span>
+                <span class="font-bold text-slate-900">₪<span id="fxEurRate">--</span></span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -174,8 +185,8 @@
             <button onclick="clearLocalStorage()" class="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-medium rounded-lg border border-rose-200">
               <i class="fa-solid fa-trash"></i> Wipe Local Cache
             </button>
-            <button onclick="fetchExpenses()" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
-              <i class="fa-solid fa-arrows-rotate"></i> Force Reload from Google Sheet
+            <button onclick="fetchLiveRates(); fetchExpenses();" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
+              <i class="fa-solid fa-arrows-rotate"></i> Force Refresh Rates & Data
             </button>
           </div>
         </div>
@@ -187,24 +198,46 @@
     // GOOGLE APPS SCRIPT ENDPOINT
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
     
-    // FX Rates
+    // Dynamic FX Rates (default fallback until live API responds)
     const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
 
-    // In-memory state: empty by default
+    // In-memory state
     let expenses = [];
-
-    // Wipe any legacy mock items stored in previous versions
-    if (localStorage.getItem("hasWipedDemo_v2") !== "true") {
-      localStorage.removeItem("expenses");
-      localStorage.removeItem("packages");
-      localStorage.setItem("hasWipedDemo_v2", "true");
-    }
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("expDate").valueAsDate = new Date();
       document.getElementById("scriptUrlInput").value = GOOGLE_SCRIPT_URL;
+      fetchLiveRates();
       fetchExpenses();
     });
+
+    async function fetchLiveRates() {
+      const badge = document.getElementById("fxBadge");
+      try {
+        badge.textContent = "Updating...";
+        // Free real-time exchange rate endpoint (ILS base)
+        const res = await fetch("https://open.er-api.com/v6/latest/ILS");
+        const data = await res.json();
+        
+        if (data && data.rates) {
+          // 1 / rate gives the ILS value per 1 USD/EUR
+          RATES.USD = parseFloat((1 / data.rates.USD).toFixed(3));
+          RATES.EUR = parseFloat((1 / data.rates.EUR).toFixed(3));
+
+          document.getElementById("fxUsdRate").textContent = RATES.USD.toFixed(3);
+          document.getElementById("fxEurRate").textContent = RATES.EUR.toFixed(3);
+          
+          badge.textContent = "Live Market";
+          badge.className = "text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium";
+        }
+      } catch (err) {
+        console.warn("Unable to fetch live FX rates, using fallback:", err);
+        document.getElementById("fxUsdRate").textContent = RATES.USD.toFixed(2);
+        document.getElementById("fxEurRate").textContent = RATES.EUR.toFixed(2);
+        badge.textContent = "Fallback";
+        badge.className = "text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium";
+      }
+    }
 
     function switchTab(tab) {
       ['expenses', 'packages', 'settings'].forEach(t => {
@@ -229,7 +262,6 @@
       } catch (err) {
         console.error("Error reading from Google Sheet:", err);
         setSyncStatus("Offline / Cached", "slate");
-        // Fallback to local storage if offline
         const local = localStorage.getItem("expenses");
         expenses = local ? JSON.parse(local) : [];
         renderExpenses();
