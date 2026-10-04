@@ -198,11 +198,17 @@
     // GOOGLE APPS SCRIPT ENDPOINT
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
     
-    // Dynamic FX Rates (default fallback until live API responds)
+    // Dynamic FX Rates
     const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
 
     // In-memory state
     let expenses = [];
+
+    // Force flush stale cache from earlier sessions
+    if (localStorage.getItem("cleanStorage_v3") !== "true") {
+      localStorage.clear();
+      localStorage.setItem("cleanStorage_v3", "true");
+    }
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("expDate").valueAsDate = new Date();
@@ -215,12 +221,10 @@
       const badge = document.getElementById("fxBadge");
       try {
         badge.textContent = "Updating...";
-        // Free real-time exchange rate endpoint (ILS base)
         const res = await fetch("https://open.er-api.com/v6/latest/ILS");
         const data = await res.json();
         
         if (data && data.rates) {
-          // 1 / rate gives the ILS value per 1 USD/EUR
           RATES.USD = parseFloat((1 / data.rates.USD).toFixed(3));
           RATES.EUR = parseFloat((1 / data.rates.EUR).toFixed(3));
 
@@ -256,7 +260,18 @@
       try {
         const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Expenses`);
         const data = await res.json();
-        expenses = Array.isArray(data) ? data : [];
+        
+        // Strict filter: Ignore blank table rows or empty rows
+        expenses = Array.isArray(data)
+          ? data.filter(item => 
+              item && 
+              item.id && 
+              String(item.id).trim() !== "" && 
+              item.description && 
+              String(item.description).trim() !== ""
+            )
+          : [];
+
         renderExpenses();
         setSyncStatus("Cloud Synced", "emerald");
       } catch (err) {
@@ -276,7 +291,8 @@
 
       const date = document.getElementById("expDate").value;
       const desc = document.getElementById("expDesc").value;
-      const amount = parseFloat(document.getElementById("expAmount").value) || 0;
+      const rawAmount = parseFloat(document.getElementById("expAmount").value);
+      const amount = isNaN(rawAmount) ? 0 : rawAmount;
       const currency = document.getElementById("expCurrency").value;
       const category = document.getElementById("expCategory").value;
       const method = document.getElementById("expMethod").value;
@@ -303,7 +319,7 @@
       renderExpenses();
       localStorage.setItem("expenses", JSON.stringify(expenses));
 
-      // Reset form
+      // Reset input fields
       document.getElementById("expDesc").value = "";
       document.getElementById("expAmount").value = "";
 
@@ -344,7 +360,7 @@
       const tbody = document.getElementById("expensesTableBody");
       let totalIls = 0;
 
-      if (expenses.length === 0) {
+      if (!expenses || expenses.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No transactions recorded yet. Add your first expense above!</td></tr>`;
         document.getElementById("totalSpend").textContent = "₪0.00";
         document.getElementById("txCount").textContent = "0";
@@ -352,15 +368,21 @@
       }
 
       tbody.innerHTML = expenses.map(item => {
-        const ils = parseFloat(item.ilsAmount) || 0;
+        const parsedIls = parseFloat(item.ilsAmount);
+        const ils = isNaN(parsedIls) ? 0 : parsedIls;
         totalIls += ils;
+
+        const parsedAmount = parseFloat(item.amount);
+        const amountDisplay = isNaN(parsedAmount) ? "0.00" : parsedAmount.toFixed(2);
+        const currSymbol = item.currency === 'USD' ? '$' : item.currency === 'EUR' ? '€' : '₪';
+
         return `
           <tr class="hover:bg-slate-50 transition border-b border-slate-100">
             <td class="p-3 text-slate-500 whitespace-nowrap">${item.date || ''}</td>
             <td class="p-3 font-medium text-slate-900">${item.description || ''}</td>
             <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">${item.category || 'General'}</span></td>
             <td class="p-3 text-slate-600">${item.paymentMethod || 'Credit Card'}</td>
-            <td class="p-3 text-right font-medium">${item.currency === 'USD' ? '$' : item.currency === 'EUR' ? '€' : '₪'}${parseFloat(item.amount || 0).toFixed(2)}</td>
+            <td class="p-3 text-right font-medium">${currSymbol}${amountDisplay}</td>
             <td class="p-3 text-right font-semibold text-slate-900">₪${ils.toFixed(2)}</td>
             <td class="p-3 text-center">
               <button onclick="deleteExpense('${item.id}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded">
