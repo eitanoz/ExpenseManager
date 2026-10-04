@@ -83,6 +83,12 @@
               </select>
             </div>
             <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Card / Account Nickname</label>
+              <select id="expCard" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+                <option value="Default Card">Loading cards...</option>
+              </select>
+            </div>
+            <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Payment Method</label>
               <select id="expMethod" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
                 <option value="Credit Card">Credit Card</option>
@@ -91,22 +97,34 @@
                 <option value="Cash / Bit">Cash / Bit</option>
               </select>
             </div>
-            <div class="flex items-end">
-              <button type="submit" id="addExpBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-4 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-check"></i> Save to Sheet
+            <div class="sm:col-span-2 md:col-span-3 flex justify-end">
+              <button type="submit" id="addExpBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i> Save Expense
               </button>
             </div>
           </form>
         </div>
 
+        <!-- Monthly Filter & Summary Controls -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-100 p-3 rounded-xl border border-slate-200">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-calendar text-slate-500 text-sm"></i>
+            <span class="text-xs font-semibold text-slate-700">Filter Month:</span>
+            <select id="monthFilter" onchange="renderExpenses()" class="text-xs font-medium rounded-lg border-slate-300 border py-1 px-2 bg-white">
+              <option value="ALL">All Time</option>
+            </select>
+          </div>
+          <span id="monthSummaryBadge" class="text-xs font-medium text-slate-600">Showing all transactions</span>
+        </div>
+
         <!-- Summary Totals -->
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div class="bg-white p-4 rounded-xl border border-slate-200">
-            <span class="text-xs font-medium text-slate-500 block">Total Spend</span>
+            <span class="text-xs font-medium text-slate-500 block">Filtered Spend</span>
             <span id="totalSpend" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">₪0.00</span>
           </div>
           <div class="bg-white p-4 rounded-xl border border-slate-200">
-            <span class="text-xs font-medium text-slate-500 block">Total Transactions</span>
+            <span class="text-xs font-medium text-slate-500 block">Filtered Transactions</span>
             <span id="txCount" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">0</span>
           </div>
           <div class="bg-white p-4 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
@@ -130,7 +148,7 @@
         <!-- Transactions List -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-slate-800">Recent Transactions</h3>
+            <h3 class="text-sm font-semibold text-slate-800">Transactions</h3>
             <button onclick="fetchExpenses()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
               <i class="fa-solid fa-arrows-rotate"></i> Refresh
             </button>
@@ -141,8 +159,8 @@
                 <tr>
                   <th class="p-3">Date</th>
                   <th class="p-3">Description</th>
+                  <th class="p-3">Card / Account</th>
                   <th class="p-3">Category</th>
-                  <th class="p-3">Method</th>
                   <th class="p-3 text-right">Original</th>
                   <th class="p-3 text-right">ILS (₪)</th>
                   <th class="p-3 text-center">Action</th>
@@ -168,11 +186,11 @@
           <form id="packageForm" onsubmit="handleNewPackage(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Item Description</label>
-              <input type="text" id="pkgDesc" placeholder="e.g. Mechanical Keyboard, Running Shoes" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              <input type="text" id="pkgDesc" placeholder="e.g. Mechanical Keyboard" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Tracking / Order Number</label>
-              <input type="text" id="pkgTracking" placeholder="e.g. TBA1234567, US123456" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono" />
+              <input type="text" id="pkgTracking" placeholder="e.g. TBA1234567" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono" />
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder / Carrier</label>
@@ -265,8 +283,8 @@
             <button onclick="clearLocalStorage()" class="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-medium rounded-lg border border-rose-200">
               <i class="fa-solid fa-trash"></i> Wipe Local Cache
             </button>
-            <button onclick="fetchLiveRates(); fetchExpenses(); fetchPackages();" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
-              <i class="fa-solid fa-arrows-rotate"></i> Force Refresh Rates & Data
+            <button onclick="fetchLiveRates(); fetchCards(); fetchExpenses(); fetchPackages();" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
+              <i class="fa-solid fa-arrows-rotate"></i> Force Refresh All
             </button>
           </div>
         </div>
@@ -284,17 +302,19 @@
     // In-memory states
     let expenses = [];
     let packages = [];
+    let cards = [];
 
-    // Force flush cache for version 4 update
-    if (localStorage.getItem("cleanStorage_v4") !== "true") {
+    // Force flush cache for version 5 update
+    if (localStorage.getItem("cleanStorage_v5") !== "true") {
       localStorage.clear();
-      localStorage.setItem("cleanStorage_v4", "true");
+      localStorage.setItem("cleanStorage_v5", "true");
     }
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("expDate").valueAsDate = new Date();
       document.getElementById("scriptUrlInput").value = GOOGLE_SCRIPT_URL;
       fetchLiveRates();
+      fetchCards();
       fetchExpenses();
       fetchPackages();
     });
@@ -340,6 +360,33 @@
       }
     }
 
+    /* ------------------- CARDS LOGIC ------------------- */
+    async function fetchCards() {
+      try {
+        const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Cards`);
+        const data = await res.json();
+        cards = Array.isArray(data) ? data.filter(c => c && c.nickname && String(c.nickname).trim() !== "") : [];
+        populateCardDropdown();
+      } catch (err) {
+        console.warn("Could not load Cards sheet:", err);
+        cards = [
+          { nickname: "Max Personal" },
+          { nickname: "Cal Family" },
+          { nickname: "Corporate Card" }
+        ];
+        populateCardDropdown();
+      }
+    }
+
+    function populateCardDropdown() {
+      const select = document.getElementById("expCard");
+      if (!cards || cards.length === 0) {
+        select.innerHTML = `<option value="Default Card">Default Card</option>`;
+        return;
+      }
+      select.innerHTML = cards.map(c => `<option value="${c.nickname}">${c.nickname}</option>`).join('');
+    }
+
     /* ------------------- EXPENSES LOGIC ------------------- */
     async function fetchExpenses() {
       setSyncStatus("Syncing with Sheet...", "amber");
@@ -357,6 +404,7 @@
             )
           : [];
 
+        updateMonthFilterOptions();
         renderExpenses();
         setSyncStatus("Cloud Synced", "emerald");
       } catch (err) {
@@ -364,7 +412,31 @@
         setSyncStatus("Offline / Cached", "slate");
         const local = localStorage.getItem("expenses");
         expenses = local ? JSON.parse(local) : [];
+        updateMonthFilterOptions();
         renderExpenses();
+      }
+    }
+
+    function updateMonthFilterOptions() {
+      const select = document.getElementById("monthFilter");
+      const currentSelected = select.value;
+      const months = new Set();
+
+      expenses.forEach(item => {
+        if (item.date && item.date.length >= 7) {
+          months.add(item.date.substring(0, 7)); // 'YYYY-MM'
+        }
+      });
+
+      const sortedMonths = Array.from(months).sort().reverse();
+      let html = `<option value="ALL">All Time</option>`;
+      sortedMonths.forEach(m => {
+        html += `<option value="${m}">${m}</option>`;
+      });
+
+      select.innerHTML = html;
+      if (sortedMonths.includes(currentSelected)) {
+        select.value = currentSelected;
       }
     }
 
@@ -380,6 +452,7 @@
       const amount = isNaN(rawAmount) ? 0 : rawAmount;
       const currency = document.getElementById("expCurrency").value;
       const category = document.getElementById("expCategory").value;
+      const card = document.getElementById("expCard").value;
       const method = document.getElementById("expMethod").value;
 
       const rate = RATES[currency] || 1;
@@ -394,12 +467,14 @@
         currency: currency,
         ilsAmount: ilsAmount,
         category: category,
+        card: card,
         paymentMethod: method,
         isRecurring: "No",
         createdAt: new Date().toISOString()
       };
 
       expenses.unshift(newExpense);
+      updateMonthFilterOptions();
       renderExpenses();
       localStorage.setItem("expenses", JSON.stringify(expenses));
 
@@ -418,7 +493,7 @@
         setSyncStatus("Saved locally (Sync pending)", "amber");
       } finally {
         addBtn.disabled = false;
-        addBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save to Sheet`;
+        addBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save Expense`;
       }
     }
 
@@ -441,16 +516,27 @@
 
     function renderExpenses() {
       const tbody = document.getElementById("expensesTableBody");
+      const selectedMonth = document.getElementById("monthFilter").value;
+      const badge = document.getElementById("monthSummaryBadge");
+
+      let filtered = expenses;
+      if (selectedMonth !== "ALL") {
+        filtered = expenses.filter(item => item.date && item.date.startsWith(selectedMonth));
+        badge.textContent = `Showing ${selectedMonth} (${filtered.length} entries)`;
+      } else {
+        badge.textContent = `Showing all transactions (${expenses.length} entries)`;
+      }
+
       let totalIls = 0;
 
-      if (!expenses || expenses.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No transactions recorded yet. Add your first expense above!</td></tr>`;
+      if (!filtered || filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No transactions for this selection.</td></tr>`;
         document.getElementById("totalSpend").textContent = "₪0.00";
         document.getElementById("txCount").textContent = "0";
         return;
       }
 
-      tbody.innerHTML = expenses.map(item => {
+      tbody.innerHTML = filtered.map(item => {
         const parsedIls = parseFloat(item.ilsAmount);
         const ils = isNaN(parsedIls) ? 0 : parsedIls;
         totalIls += ils;
@@ -463,8 +549,10 @@
           <tr class="hover:bg-slate-50 transition border-b border-slate-100">
             <td class="p-3 text-slate-500 whitespace-nowrap">${item.date || ''}</td>
             <td class="p-3 font-medium text-slate-900">${item.description || ''}</td>
+            <td class="p-3">
+              <span class="inline-block px-2 py-0.5 rounded text-xs bg-slate-100 font-medium text-slate-700">${item.card || 'Default Card'}</span>
+            </td>
             <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">${item.category || 'General'}</span></td>
-            <td class="p-3 text-slate-600">${item.paymentMethod || 'Credit Card'}</td>
             <td class="p-3 text-right font-medium">${currSymbol}${amountDisplay}</td>
             <td class="p-3 text-right font-semibold text-slate-900">₪${ils.toFixed(2)}</td>
             <td class="p-3 text-center">
@@ -477,7 +565,7 @@
       }).join('');
 
       document.getElementById("totalSpend").textContent = `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      document.getElementById("txCount").textContent = expenses.length;
+      document.getElementById("txCount").textContent = filtered.length;
     }
 
     /* ------------------- PACKAGES LOGIC ------------------- */
