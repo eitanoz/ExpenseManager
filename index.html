@@ -6,6 +6,8 @@
   <title>Expense & Package Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Chart.js for interactive analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
   </style>
@@ -32,6 +34,9 @@
     <nav class="flex space-x-2 border-b border-slate-200 mb-6 overflow-x-auto pb-1 text-sm font-medium">
       <button onclick="switchTab('expenses')" id="tab-expenses" class="tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-receipt"></i> Expenses
+      </button>
+      <button onclick="switchTab('analytics')" id="tab-analytics" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-chart-pie"></i> Analytics & Stats
       </button>
       <button onclick="switchTab('packages')" id="tab-packages" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-box"></i> Package Tracker
@@ -113,7 +118,7 @@
           <div class="flex items-center gap-2">
             <i class="fa-solid fa-calendar text-slate-500 text-sm"></i>
             <span class="text-xs font-semibold text-slate-700">Filter Month:</span>
-            <select id="monthFilter" onchange="renderExpenses()" class="text-xs font-medium rounded-lg border-slate-300 border py-1 px-2 bg-white">
+            <select id="monthFilter" onchange="renderExpenses(); renderAnalytics();" class="text-xs font-medium rounded-lg border-slate-300 border py-1 px-2 bg-white">
               <option value="ALL">All Time</option>
             </select>
           </div>
@@ -179,7 +184,82 @@
         </div>
       </section>
 
-      <!-- TAB 2: PACKAGES -->
+      <!-- TAB 2: ANALYTICS & STATS -->
+      <section id="view-analytics" class="hidden space-y-6">
+        <!-- High-level Analytics KPIs -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">Avg Ticket</span>
+            <span id="statAvgTicket" class="text-lg sm:text-xl font-bold text-slate-900 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">Largest Single Expense</span>
+            <span id="statMaxExpense" class="text-lg sm:text-xl font-bold text-indigo-600 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">Top Category</span>
+            <span id="statTopCat" class="text-sm sm:text-base font-bold text-slate-800 mt-1 block truncate">-</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">Most Used Card</span>
+            <span id="statTopCard" class="text-sm sm:text-base font-bold text-slate-800 mt-1 block truncate">-</span>
+          </div>
+        </div>
+
+        <!-- Monthly Spend Trend Chart -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-column text-indigo-500"></i> Monthly Spend Overview (₪ ILS)
+          </h3>
+          <div class="h-64 relative">
+            <canvas id="monthlyTrendChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Breakdowns Grid: Category & Card -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-chart-pie text-emerald-500"></i> Spend by Category
+            </h3>
+            <div class="h-56 relative flex justify-center">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-credit-card text-sky-500"></i> Spend by Card / Account
+            </h3>
+            <div class="h-56 relative flex justify-center">
+              <canvas id="cardChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Breakdown Detail Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100">
+            <h3 class="text-sm font-semibold text-slate-800">Card Utilization Breakdown</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3">Card Nickname</th>
+                  <th class="p-3 text-center">Transactions</th>
+                  <th class="p-3 text-right">Total Charged</th>
+                  <th class="p-3 text-right">Share of Total</th>
+                </tr>
+              </thead>
+              <tbody id="cardStatsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="4" class="p-4 text-center text-slate-400">No data available.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: PACKAGES -->
       <section id="view-packages" class="hidden space-y-6">
         <!-- Add Package Form -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
@@ -272,7 +352,7 @@
         </div>
       </section>
 
-      <!-- TAB 3: CARDS & SETTINGS -->
+      <!-- TAB 4: CARDS & SETTINGS -->
       <section id="view-settings" class="hidden space-y-6">
         <!-- Card Manager Card -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
@@ -363,10 +443,15 @@
     let packages = [];
     let cards = [];
 
-    // Force flush cache for version 6 update
-    if (localStorage.getItem("cleanStorage_v6") !== "true") {
+    // Chart instances
+    let trendChartInstance = null;
+    let categoryChartInstance = null;
+    let cardChartInstance = null;
+
+    // Force flush cache for version 7 update
+    if (localStorage.getItem("cleanStorage_v7") !== "true") {
       localStorage.clear();
-      localStorage.setItem("cleanStorage_v6", "true");
+      localStorage.setItem("cleanStorage_v7", "true");
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -405,7 +490,7 @@
     }
 
     function switchTab(tab) {
-      ['expenses', 'packages', 'settings'].forEach(t => {
+      ['expenses', 'analytics', 'packages', 'settings'].forEach(t => {
         document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tab);
         const btn = document.getElementById(`tab-${t}`);
         if (t === tab) {
@@ -414,6 +499,7 @@
           btn.className = "tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap";
         }
       });
+      if (tab === 'analytics') renderAnalytics();
       if (tab === 'packages' && packages.length === 0) fetchPackages();
       if (tab === 'settings' && cards.length === 0) fetchCards();
     }
@@ -548,6 +634,7 @@
 
         updateMonthFilterOptions();
         renderExpenses();
+        renderAnalytics();
         setSyncStatus("Cloud Synced", "emerald");
       } catch (err) {
         console.error("Error reading from Google Sheet:", err);
@@ -556,6 +643,7 @@
         expenses = local ? JSON.parse(local) : [];
         updateMonthFilterOptions();
         renderExpenses();
+        renderAnalytics();
       }
     }
 
@@ -618,6 +706,7 @@
       expenses.unshift(newExpense);
       updateMonthFilterOptions();
       renderExpenses();
+      renderAnalytics();
       localStorage.setItem("expenses", JSON.stringify(expenses));
 
       document.getElementById("expDesc").value = "";
@@ -643,6 +732,7 @@
       if (!confirm("Are you sure you want to delete this expense?")) return;
       expenses = expenses.filter(x => String(x.id) !== String(id));
       renderExpenses();
+      renderAnalytics();
       localStorage.setItem("expenses", JSON.stringify(expenses));
 
       try {
@@ -708,6 +798,176 @@
 
       document.getElementById("totalSpend").textContent = `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       document.getElementById("txCount").textContent = filtered.length;
+    }
+
+    /* ------------------- ADVANCED ANALYTICS & STATS ------------------- */
+    function renderAnalytics() {
+      const selectedMonth = document.getElementById("monthFilter").value;
+      const filtered = (selectedMonth !== "ALL")
+        ? expenses.filter(item => item.date && item.date.startsWith(selectedMonth))
+        : expenses;
+
+      if (!filtered || filtered.length === 0) {
+        document.getElementById("statAvgTicket").textContent = "₪0.00";
+        document.getElementById("statMaxExpense").textContent = "₪0.00";
+        document.getElementById("statTopCat").textContent = "-";
+        document.getElementById("statTopCard").textContent = "-";
+        document.getElementById("cardStatsTableBody").innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No records for this timeframe.</td></tr>`;
+        return;
+      }
+
+      // Calculations
+      let totalIls = 0;
+      let maxExpense = 0;
+      const catTotals = {};
+      const cardTotals = {};
+      const cardCounts = {};
+
+      filtered.forEach(item => {
+        const val = parseFloat(item.ilsAmount) || 0;
+        totalIls += val;
+        if (val > maxExpense) maxExpense = val;
+
+        const cat = item.category || 'General';
+        catTotals[cat] = (catTotals[cat] || 0) + val;
+
+        const card = item.card || 'Default Card';
+        cardTotals[card] = (cardTotals[card] || 0) + val;
+        cardCounts[card] = (cardCounts[card] || 0) + 1;
+      });
+
+      const avgTicket = totalIls / filtered.length;
+      document.getElementById("statAvgTicket").textContent = `₪${avgTicket.toFixed(2)}`;
+      document.getElementById("statMaxExpense").textContent = `₪${maxExpense.toFixed(2)}`;
+
+      // Top Category
+      let topCat = "-";
+      let topCatVal = 0;
+      for (const [k, v] of Object.entries(catTotals)) {
+        if (v > topCatVal) { topCatVal = v; topCat = k; }
+      }
+      document.getElementById("statTopCat").textContent = `${topCat} (₪${topCatVal.toFixed(0)})`;
+
+      // Top Card
+      let topCard = "-";
+      let topCardVal = 0;
+      for (const [k, v] of Object.entries(cardTotals)) {
+        if (v > topCardVal) { topCardVal = v; topCard = k; }
+      }
+      document.getElementById("statTopCard").textContent = `${topCard} (₪${topCardVal.toFixed(0)})`;
+
+      // Render Card Breakdown Table
+      const cardTbody = document.getElementById("cardStatsTableBody");
+      cardTbody.innerHTML = Object.keys(cardTotals).map(cName => {
+        const cTotal = cardTotals[cName];
+        const share = totalIls > 0 ? ((cTotal / totalIls) * 100).toFixed(1) : 0;
+        return `
+          <tr class="hover:bg-slate-50 border-b border-slate-100">
+            <td class="p-3 font-medium text-slate-900">${cName}</td>
+            <td class="p-3 text-center text-slate-600">${cardCounts[cName]}</td>
+            <td class="p-3 text-right font-semibold text-slate-900">₪${cTotal.toFixed(2)}</td>
+            <td class="p-3 text-right text-slate-500">${share}%</td>
+          </tr>
+        `;
+      }).join('');
+
+      // Build / Update Charts
+      buildMonthlyTrendChart();
+      buildCategoryChart(catTotals);
+      buildCardChart(cardTotals);
+    }
+
+    function buildMonthlyTrendChart() {
+      // Group all expenses by month
+      const monthlyData = {};
+      expenses.forEach(item => {
+        if (item.date && item.date.length >= 7) {
+          const ym = item.date.substring(0, 7);
+          monthlyData[ym] = (monthlyData[ym] || 0) + (parseFloat(item.ilsAmount) || 0);
+        }
+      });
+
+      const labels = Object.keys(monthlyData).sort();
+      const dataPoints = labels.map(m => monthlyData[m]);
+
+      const ctx = document.getElementById("monthlyTrendChart").getContext("2d");
+      if (trendChartInstance) trendChartInstance.destroy();
+
+      trendChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total Spend (₪)',
+            data: dataPoints,
+            backgroundColor: '#6366f1',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function buildCategoryChart(catTotals) {
+      const labels = Object.keys(catTotals);
+      const dataPoints = labels.map(k => catTotals[k]);
+      const ctx = document.getElementById("categoryChart").getContext("2d");
+
+      if (categoryChartInstance) categoryChartInstance.destroy();
+
+      categoryChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataPoints,
+            backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6', '#14b8a6']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function buildCardChart(cardTotals) {
+      const labels = Object.keys(cardTotals);
+      const dataPoints = labels.map(k => cardTotals[k]);
+      const ctx = document.getElementById("cardChart").getContext("2d");
+
+      if (cardChartInstance) cardChartInstance.destroy();
+
+      cardChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataPoints,
+            backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#84cc16']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
     }
 
     /* ------------------- PACKAGES LOGIC ------------------- */
