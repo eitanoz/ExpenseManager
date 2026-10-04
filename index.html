@@ -1,56 +1,11 @@
-function doGet(e) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheetName = (e && e.parameter && e.parameter.sheet) ? e.parameter.sheet : 'Expenses';
-  const sheet = ss.getSheetByName(sheetName);
-  
-  if (!sheet) {
-    return ContentService.createTextOutput(JSON.stringify([]))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-  
-  const rows = sheet.getDataRange().getValues();
-  if (rows.length <= 1) {
-Here is why both of these things are happening and how we will resolve them:
-
-1. **Why line 6 instead of line 2:** Google Sheets has `appendRow()`. When you set up the formatted table, Google Sheets reserved blank rows 2 through 5 inside the table boundary. Apps Script treats those blank table rows as occupied, so `appendRow()` placed the new row right below them at line 6.
-2. **Package Tracker:** We need to add the **Add Package Form**, forwarder options (e.g. UShops, Buy2USA, Shipito, Israel Post), status tracking, and connect it directly to write to your `Packages` sheet.
-
----
-
-### Step 1: Clean Up Empty Rows in Google Sheets
-
-1. Open your **`ExpenseManager_DB`** Google Sheet.
-2. Look at rows 2, 3, 4, and 5.
-3. Select rows 2 through 5 on the left row number bar, right-click, and select **Delete rows 2 - 5**.
-4. Now your real transaction should sit nicely on **Row 2** right below the header row!
-
----
-
-### Step 2: Ensure the `Packages` Tab Exists in Your Sheet
-
-In your `ExpenseManager_DB` Google Sheet:
-1. Check the bottom tabs. If you don't have a tab named **`Packages`**, click the **`+`** icon at the bottom left to create one.
-2. Put these headers in Row 1:
-   * `id` | `itemDescription` | `trackingNumber` | `forwarder` | `status` | `itemCost` | `currency` | `shippingFeeIls` | `totalCostIls` | `updatedAt`
-
----
-
-### Step 3: Complete `index.html` with Package Tracker Creation & Sync
-
-Here is the updated `index.html` featuring:
-* Full interactive **Package Tracker** (Add new package, select forwarder, track status, add shipping fees, and delete).
-* Both Expenses and Packages write to and read from their respective Google Sheet tabs seamlessly.
-* Real-time FX conversion for package item costs to ILS.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense & Package Manager</title>
-  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
   </style>
@@ -321,7 +276,7 @@ Here is the updated `index.html` featuring:
 
   <script>
     // GOOGLE APPS SCRIPT ENDPOINT
-    const GOOGLE_SCRIPT_URL = "[https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec](https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec)";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
     
     // Dynamic FX Rates
     const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
@@ -348,7 +303,7 @@ Here is the updated `index.html` featuring:
       const badge = document.getElementById("fxBadge");
       try {
         badge.textContent = "Updating...";
-        const res = await fetch("[https://open.er-api.com/v6/latest/ILS](https://open.er-api.com/v6/latest/ILS)");
+        const res = await fetch("https://open.er-api.com/v6/latest/ILS");
         const data = await res.json();
         
         if (data && data.rates) {
