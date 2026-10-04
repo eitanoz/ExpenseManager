@@ -1,11 +1,56 @@
+function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetName = (e && e.parameter && e.parameter.sheet) ? e.parameter.sheet : 'Expenses';
+  const sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    return ContentService.createTextOutput(JSON.stringify([]))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) {
+Here is why both of these things are happening and how we will resolve them:
+
+1. **Why line 6 instead of line 2:** Google Sheets has `appendRow()`. When you set up the formatted table, Google Sheets reserved blank rows 2 through 5 inside the table boundary. Apps Script treats those blank table rows as occupied, so `appendRow()` placed the new row right below them at line 6.
+2. **Package Tracker:** We need to add the **Add Package Form**, forwarder options (e.g. UShops, Buy2USA, Shipito, Israel Post), status tracking, and connect it directly to write to your `Packages` sheet.
+
+---
+
+### Step 1: Clean Up Empty Rows in Google Sheets
+
+1. Open your **`ExpenseManager_DB`** Google Sheet.
+2. Look at rows 2, 3, 4, and 5.
+3. Select rows 2 through 5 on the left row number bar, right-click, and select **Delete rows 2 - 5**.
+4. Now your real transaction should sit nicely on **Row 2** right below the header row!
+
+---
+
+### Step 2: Ensure the `Packages` Tab Exists in Your Sheet
+
+In your `ExpenseManager_DB` Google Sheet:
+1. Check the bottom tabs. If you don't have a tab named **`Packages`**, click the **`+`** icon at the bottom left to create one.
+2. Put these headers in Row 1:
+   * `id` | `itemDescription` | `trackingNumber` | `forwarder` | `status` | `itemCost` | `currency` | `shippingFeeIls` | `totalCostIls` | `updatedAt`
+
+---
+
+### Step 3: Complete `index.html` with Package Tracker Creation & Sync
+
+Here is the updated `index.html` featuring:
+* Full interactive **Package Tracker** (Add new package, select forwarder, track status, add shipping fees, and delete).
+* Both Expenses and Packages write to and read from their respective Google Sheet tabs seamlessly.
+* Real-time FX conversion for package item costs to ILS.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense & Package Manager</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)" />
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
   </style>
@@ -160,13 +205,93 @@
 
       <!-- TAB 2: PACKAGES -->
       <section id="view-packages" class="hidden space-y-6">
+        <!-- Add Package Form -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-          <h2 class="text-base font-semibold text-slate-800 mb-2 flex items-center gap-2">
-            <i class="fa-solid fa-truck-ramp-box text-indigo-500"></i> 3rd-Party Freight & Package Tracker
+          <h2 class="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Forwarder Order
           </h2>
-          <p class="text-xs text-slate-500 mb-4">Track online orders, forwarder waybills (e.g., UShops, Buy2USA, Shipito), and post-purchase shipping fees.</p>
-          <div id="packagesContainer" class="text-sm text-slate-500 italic p-6 text-center border-2 border-dashed border-slate-200 rounded-lg">
-            No active tracked shipments found.
+          <form id="packageForm" onsubmit="handleNewPackage(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Item Description</label>
+              <input type="text" id="pkgDesc" placeholder="e.g. Mechanical Keyboard, Running Shoes" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Tracking / Order Number</label>
+              <input type="text" id="pkgTracking" placeholder="e.g. TBA1234567, US123456" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder / Carrier</label>
+              <select id="pkgForwarder" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+                <option value="Direct Shipping">Direct Shipping (Amazon / AliExpress)</option>
+                <option value="UShops">UShops (USA/UK)</option>
+                <option value="Buy2USA">Buy2USA</option>
+                <option value="Shipito">Shipito</option>
+                <option value="Israel Post">Israel Post / Doar</option>
+                <option value="DHL / FedEx / UPS">DHL / FedEx / UPS</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Item Purchase Cost</label>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="pkgCost" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="pkgCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="USD">$ USD</option>
+                  <option value="ILS">₪ ILS</option>
+                  <option value="EUR">€ EUR</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder Shipping Fee (₪ ILS)</label>
+              <input type="number" step="0.01" id="pkgShippingFee" placeholder="e.g. 75.00" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Current Status</label>
+              <select id="pkgStatus" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+                <option value="Ordered">Ordered / Awaiting Warehouse</option>
+                <option value="Received at US Hub">Received at Forwarder Hub</option>
+                <option value="In Transit to IL">In Transit to Israel</option>
+                <option value="Customs Clearance">Customs Clearance</option>
+                <option value="Out for Delivery">Out for Delivery</option>
+                <option value="Delivered">Delivered</option>
+              </select>
+            </div>
+            <div class="sm:col-span-2 md:col-span-3 flex justify-end">
+              <button type="submit" id="addPkgBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-box"></i> Save Package
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Package List -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">Tracked Packages</h3>
+            <button onclick="fetchPackages()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3">Item</th>
+                  <th class="p-3">Tracking / Carrier</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3 text-right">Item Cost</th>
+                  <th class="p-3 text-right">Shipping (₪)</th>
+                  <th class="p-3 text-right">Total (₪)</th>
+                  <th class="p-3 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="packagesTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                  <td colspan="7" class="p-8 text-center text-slate-400">Loading packages from Google Sheet...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -185,7 +310,7 @@
             <button onclick="clearLocalStorage()" class="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-medium rounded-lg border border-rose-200">
               <i class="fa-solid fa-trash"></i> Wipe Local Cache
             </button>
-            <button onclick="fetchLiveRates(); fetchExpenses();" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
+            <button onclick="fetchLiveRates(); fetchExpenses(); fetchPackages();" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
               <i class="fa-solid fa-arrows-rotate"></i> Force Refresh Rates & Data
             </button>
           </div>
@@ -196,18 +321,19 @@
 
   <script>
     // GOOGLE APPS SCRIPT ENDPOINT
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
+    const GOOGLE_SCRIPT_URL = "[https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec](https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec)";
     
     // Dynamic FX Rates
     const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
 
-    // In-memory state
+    // In-memory states
     let expenses = [];
+    let packages = [];
 
-    // Force flush stale cache from earlier sessions
-    if (localStorage.getItem("cleanStorage_v3") !== "true") {
+    // Force flush cache for version 4 update
+    if (localStorage.getItem("cleanStorage_v4") !== "true") {
       localStorage.clear();
-      localStorage.setItem("cleanStorage_v3", "true");
+      localStorage.setItem("cleanStorage_v4", "true");
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -215,13 +341,14 @@
       document.getElementById("scriptUrlInput").value = GOOGLE_SCRIPT_URL;
       fetchLiveRates();
       fetchExpenses();
+      fetchPackages();
     });
 
     async function fetchLiveRates() {
       const badge = document.getElementById("fxBadge");
       try {
         badge.textContent = "Updating...";
-        const res = await fetch("https://open.er-api.com/v6/latest/ILS");
+        const res = await fetch("[https://open.er-api.com/v6/latest/ILS](https://open.er-api.com/v6/latest/ILS)");
         const data = await res.json();
         
         if (data && data.rates) {
@@ -253,15 +380,18 @@
           btn.className = "tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap";
         }
       });
+      if (tab === 'packages' && packages.length === 0) {
+        fetchPackages();
+      }
     }
 
+    /* ------------------- EXPENSES LOGIC ------------------- */
     async function fetchExpenses() {
       setSyncStatus("Syncing with Sheet...", "amber");
       try {
         const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Expenses`);
         const data = await res.json();
         
-        // Strict filter: Ignore blank table rows or empty rows
         expenses = Array.isArray(data)
           ? data.filter(item => 
               item && 
@@ -314,12 +444,10 @@
         createdAt: new Date().toISOString()
       };
 
-      // Optimistic local update
       expenses.unshift(newExpense);
       renderExpenses();
       localStorage.setItem("expenses", JSON.stringify(expenses));
 
-      // Reset input fields
       document.getElementById("expDesc").value = "";
       document.getElementById("expAmount").value = "";
 
@@ -352,7 +480,7 @@
           body: JSON.stringify({ action: "delete", sheet: "Expenses", id: id })
         });
       } catch (err) {
-        console.error("Error deleting row:", err);
+        console.error("Error deleting expense:", err);
       }
     }
 
@@ -397,6 +525,139 @@
       document.getElementById("txCount").textContent = expenses.length;
     }
 
+    /* ------------------- PACKAGES LOGIC ------------------- */
+    async function fetchPackages() {
+      try {
+        const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Packages`);
+        const data = await res.json();
+        packages = Array.isArray(data)
+          ? data.filter(item => item && item.id && String(item.id).trim() !== "" && item.itemDescription)
+          : [];
+        renderPackages();
+      } catch (err) {
+        console.error("Error reading packages:", err);
+        const local = localStorage.getItem("packages");
+        packages = local ? JSON.parse(local) : [];
+        renderPackages();
+      }
+    }
+
+    async function handleNewPackage(e) {
+      e.preventDefault();
+      const addBtn = document.getElementById("addPkgBtn");
+      addBtn.disabled = true;
+      addBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saving...`;
+
+      const desc = document.getElementById("pkgDesc").value;
+      const tracking = document.getElementById("pkgTracking").value;
+      const forwarder = document.getElementById("pkgForwarder").value;
+      const rawCost = parseFloat(document.getElementById("pkgCost").value);
+      const cost = isNaN(rawCost) ? 0 : rawCost;
+      const currency = document.getElementById("pkgCurrency").value;
+      const rawShipping = parseFloat(document.getElementById("pkgShippingFee").value);
+      const shippingIls = isNaN(rawShipping) ? 0 : rawShipping;
+      const status = document.getElementById("pkgStatus").value;
+
+      const rate = RATES[currency] || 1;
+      const itemCostIls = cost * rate;
+      const totalCostIls = (itemCostIls + shippingIls).toFixed(2);
+      const newId = Date.now().toString();
+
+      const newPkg = {
+        id: newId,
+        itemDescription: desc,
+        trackingNumber: tracking,
+        forwarder: forwarder,
+        status: status,
+        itemCost: cost,
+        currency: currency,
+        shippingFeeIls: shippingIls,
+        totalCostIls: totalCostIls,
+        updatedAt: new Date().toISOString()
+      };
+
+      packages.unshift(newPkg);
+      renderPackages();
+      localStorage.setItem("packages", JSON.stringify(packages));
+
+      document.getElementById("pkgDesc").value = "";
+      document.getElementById("pkgTracking").value = "";
+      document.getElementById("pkgCost").value = "";
+      document.getElementById("pkgShippingFee").value = "";
+
+      try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "add", sheet: "Packages", data: newPkg })
+        });
+      } catch (err) {
+        console.error("Failed to save package to Google Sheet:", err);
+      } finally {
+        addBtn.disabled = false;
+        addBtn.innerHTML = `<i class="fa-solid fa-box"></i> Save Package`;
+      }
+    }
+
+    async function deletePackage(id) {
+      if (!confirm("Are you sure you want to delete this tracked package?")) return;
+      packages = packages.filter(x => String(x.id) !== String(id));
+      renderPackages();
+      localStorage.setItem("packages", JSON.stringify(packages));
+
+      try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "delete", sheet: "Packages", id: id })
+        });
+      } catch (err) {
+        console.error("Error deleting package row:", err);
+      }
+    }
+
+    function renderPackages() {
+      const tbody = document.getElementById("packagesTableBody");
+      if (!packages || packages.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No active tracked packages. Add one using the form above!</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = packages.map(pkg => {
+        const currSymbol = pkg.currency === 'USD' ? '$' : pkg.currency === 'EUR' ? '€' : '₪';
+        const costVal = parseFloat(pkg.itemCost) || 0;
+        const shippingVal = parseFloat(pkg.shippingFeeIls) || 0;
+        const totalVal = parseFloat(pkg.totalCostIls) || 0;
+
+        let statusColor = "bg-slate-100 text-slate-700";
+        if (pkg.status === "Delivered") statusColor = "bg-emerald-100 text-emerald-800";
+        else if (pkg.status === "Out for Delivery") statusColor = "bg-blue-100 text-blue-800";
+        else if (pkg.status && pkg.status.includes("Transit")) statusColor = "bg-amber-100 text-amber-800";
+
+        return `
+          <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+            <td class="p-3 font-medium text-slate-900">${pkg.itemDescription || ''}</td>
+            <td class="p-3">
+              <span class="font-mono text-slate-700 block">${pkg.trackingNumber || ''}</span>
+              <span class="text-[11px] text-slate-400">${pkg.forwarder || 'Direct'}</span>
+            </td>
+            <td class="p-3">
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}">${pkg.status || 'Ordered'}</span>
+            </td>
+            <td class="p-3 text-right font-medium text-slate-700">${currSymbol}${costVal.toFixed(2)}</td>
+            <td class="p-3 text-right font-medium text-slate-700">₪${shippingVal.toFixed(2)}</td>
+            <td class="p-3 text-right font-semibold text-slate-900">₪${totalVal.toFixed(2)}</td>
+            <td class="p-3 text-center">
+              <button onclick="deletePackage('${pkg.id}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    /* ------------------- GENERAL HELPERS ------------------- */
     function setSyncStatus(text, color) {
       const el = document.getElementById("syncStatus");
       const dot = el.querySelector("span:first-child");
