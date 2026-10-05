@@ -292,14 +292,16 @@
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder / Carrier</label>
-              <select id="pkgForwarder" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
-                <option value="Direct Shipping">Direct Shipping (Amazon / AliExpress)</option>
+              <select id="pkgForwarder" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                <option value="RedBox">RedBox</option>
+                <option value="Dealtas">Dealtas</option>
                 <option value="UShops">UShops (USA/UK)</option>
                 <option value="Buy2USA">Buy2USA</option>
+                <option value="Direct Shipping">Direct Shipping (Amazon / AliExpress)</option>
                 <option value="Shipito">Shipito</option>
                 <option value="Israel Post">Israel Post / Doar</option>
                 <option value="DHL / FedEx / UPS">DHL / FedEx / UPS</option>
-                <option value="Other">Other</option>
+                <option value="Other">Other Forwarder</option>
               </select>
             </div>
             <div>
@@ -314,8 +316,14 @@
               </div>
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder Shipping Fee (₪ ILS)</label>
-              <input type="number" step="0.01" id="pkgShippingFee" placeholder="e.g. 75.00" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder Shipping Fee</label>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="pkgShippingFee" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="pkgShippingCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="USD">$ USD</option>
+                  <option value="ILS">₪ ILS</option>
+                </select>
+              </div>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Current Status</label>
@@ -348,11 +356,11 @@
               <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                 <tr>
                   <th class="p-3">Item</th>
-                  <th class="p-3">Tracking / Carrier</th>
+                  <th class="p-3">Carrier / Tracking</th>
                   <th class="p-3">Status</th>
                   <th class="p-3 text-right">Item Cost</th>
-                  <th class="p-3 text-right">Shipping (₪)</th>
-                  <th class="p-3 text-right">Total (₪)</th>
+                  <th class="p-3 text-right">Shipping Fee</th>
+                  <th class="p-3 text-right">Total Landed (₪)</th>
                   <th class="p-3 text-center">Action</th>
                 </tr>
               </thead>
@@ -520,9 +528,9 @@
       }
     }
 
-    if (localStorage.getItem("cleanStorage_v9") !== "true") {
+    if (localStorage.getItem("cleanStorage_v10") !== "true") {
       localStorage.clear();
-      localStorage.setItem("cleanStorage_v9", "true");
+      localStorage.setItem("cleanStorage_v10", "true");
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -1099,16 +1107,25 @@
       const desc = document.getElementById("pkgDesc").value;
       const tracking = document.getElementById("pkgTracking").value;
       const forwarder = document.getElementById("pkgForwarder").value;
+      
       const rawCost = parseFloat(document.getElementById("pkgCost").value);
       const cost = isNaN(rawCost) ? 0 : rawCost;
       const currency = document.getElementById("pkgCurrency").value;
+
       const rawShipping = parseFloat(document.getElementById("pkgShippingFee").value);
-      const shippingIls = isNaN(rawShipping) ? 0 : rawShipping;
+      const shippingAmount = isNaN(rawShipping) ? 0 : rawShipping;
+      const shippingCurrency = document.getElementById("pkgShippingCurrency").value;
+      
       const status = document.getElementById("pkgStatus").value;
 
-      const rate = RATES[currency] || 1;
-      const itemCostIls = cost * rate;
-      const totalCostIls = (itemCostIls + shippingIls).toFixed(2);
+      // Currency conversions into Base ILS (₪)
+      const itemRate = RATES[currency] || 1;
+      const itemCostIls = cost * itemRate;
+
+      const shippingRate = RATES[shippingCurrency] || 1;
+      const shippingFeeIls = (shippingAmount * shippingRate).toFixed(2);
+
+      const totalCostIls = (itemCostIls + parseFloat(shippingFeeIls)).toFixed(2);
       const newId = Date.now().toString();
 
       const newPkg = {
@@ -1119,7 +1136,9 @@
         status: status,
         itemCost: cost,
         currency: currency,
-        shippingFeeIls: shippingIls,
+        shippingFee: shippingAmount,
+        shippingCurrency: shippingCurrency,
+        shippingFeeIls: parseFloat(shippingFeeIls),
         totalCostIls: totalCostIls,
         updatedAt: new Date().toISOString()
       };
@@ -1172,9 +1191,11 @@
       }
 
       tbody.innerHTML = packages.map(pkg => {
-        const currSymbol = pkg.currency === 'USD' ? '$' : pkg.currency === 'EUR' ? '€' : '₪';
+        const itemCurrSymbol = pkg.currency === 'USD' ? '$' : pkg.currency === 'EUR' ? '€' : '₪';
+        const shipCurrSymbol = pkg.shippingCurrency === 'USD' ? '$' : '₪';
+
         const costVal = parseFloat(pkg.itemCost) || 0;
-        const shippingVal = parseFloat(pkg.shippingFeeIls) || 0;
+        const shippingFeeVal = pkg.shippingFee !== undefined ? parseFloat(pkg.shippingFee) : (parseFloat(pkg.shippingFeeIls) || 0);
         const totalVal = parseFloat(pkg.totalCostIls) || 0;
 
         let statusColor = "bg-slate-100 text-slate-700";
@@ -1187,13 +1208,13 @@
             <td class="p-3 font-medium text-slate-900">${pkg.itemDescription || ''}</td>
             <td class="p-3">
               <span class="font-mono text-slate-700 block">${pkg.trackingNumber || ''}</span>
-              <span class="text-[11px] text-slate-400">${pkg.forwarder || 'Direct'}</span>
+              <span class="text-[11px] font-semibold text-indigo-600">${pkg.forwarder || 'Direct'}</span>
             </td>
             <td class="p-3">
               <span class="px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}">${pkg.status || 'Ordered'}</span>
             </td>
-            <td class="p-3 text-right font-medium text-slate-700">${currSymbol}${costVal.toFixed(2)}</td>
-            <td class="p-3 text-right font-medium text-slate-700">₪${shippingVal.toFixed(2)}</td>
+            <td class="p-3 text-right font-medium text-slate-700">${itemCurrSymbol}${costVal.toFixed(2)}</td>
+            <td class="p-3 text-right font-medium text-slate-700">${shipCurrSymbol}${shippingFeeVal.toFixed(2)}</td>
             <td class="p-3 text-right font-semibold text-slate-900">₪${totalVal.toFixed(2)}</td>
             <td class="p-3 text-center">
               <button onclick="deletePackage('${pkg.id}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded">
