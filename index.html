@@ -499,30 +499,46 @@
 
     async function handleExpenseSubmit(e) {
       e.preventDefault();
+      
+      const descInput = document.getElementById("expDesc");
+      const amountInput = document.getElementById("expAmount");
+      const dateInput = document.getElementById("expDate");
       const submitBtn = document.getElementById("expSubmitBtn");
+
+      const desc = descInput.value.trim();
+      const rawAmount = parseFloat(amountInput.value);
+
+      // Guard against blank submissions
+      if (!desc) {
+        alert("Please enter a description.");
+        descInput.focus();
+        return;
+      }
+      if (isNaN(rawAmount) || rawAmount <= 0) {
+        alert("Please enter a valid amount greater than 0.");
+        amountInput.focus();
+        return;
+      }
+
       submitBtn.disabled = true;
-      submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Processing...`;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saving...`;
 
       const editId = document.getElementById("editExpId").value;
       const isEditing = Boolean(editId);
-
-      const date = document.getElementById("expDate").value;
-      const desc = document.getElementById("expDesc").value;
-      const rawAmount = parseFloat(document.getElementById("expAmount").value);
-      const amount = isNaN(rawAmount) ? 0 : rawAmount;
       const currency = document.getElementById("expCurrency").value;
       const category = document.getElementById("expCategory").value;
       const card = document.getElementById("expCard").value;
       const method = document.getElementById("expMethod").value;
 
       const rate = RATES[currency] || 1;
-      const ilsAmount = (amount * rate).toFixed(2);
+      const ilsAmount = (rawAmount * rate).toFixed(2);
+      const targetId = isEditing ? editId : Date.now().toString();
 
       const expensePayload = {
-        id: isEditing ? editId : Date.now().toString(),
-        date: date,
+        id: targetId,
+        date: dateInput.value,
         description: desc,
-        amount: amount,
+        amount: rawAmount,
         currency: currency,
         ilsAmount: ilsAmount,
         category: category,
@@ -532,7 +548,7 @@
         createdAt: isEditing ? undefined : new Date().toISOString()
       };
 
-      // 1. Optimistic local update (instantly updates UI)
+      // 1. Instantly update UI and local storage
       if (isEditing) {
         expenses = expenses.map(x => String(x.id) === String(editId) ? { ...x, ...expensePayload } : x);
       } else {
@@ -545,34 +561,32 @@
       localStorage.setItem("expenses", JSON.stringify(expenses));
       cancelExpenseEdit();
 
-      // 2. Network sync with a 10-second timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      // Reset button right away so the UI is never frozen
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>`;
+      setSyncStatus("Syncing to sheet...", "amber");
 
+      // 2. Fire background request to Google Apps Script
+      const endpoint = getScriptUrl();
       try {
-        await fetch(getScriptUrl(), {
+        await fetch(endpoint, {
           method: "POST",
+          mode: "no-cors", // Crucial for Google Apps Script redirects
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({
             action: isEditing ? "update" : "add",
             sheet: "Expenses",
             id: editId || undefined,
             data: expensePayload
-          }),
-          signal: controller.signal
+          })
         });
-        clearTimeout(timeoutId);
         setSyncStatus("Cloud Synced", "emerald");
       } catch (err) {
-        console.warn("Background sync delay or error:", err);
+        console.warn("Background sheet sync failed:", err);
         setSyncStatus("Saved locally (Sync pending)", "amber");
-      } finally {
-        // Guarantee button always reverts back to normal
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>`;
       }
     }
-
+    
     function getScriptUrl() {
       return localStorage.getItem("customScriptUrl") || DEFAULT_SCRIPT_URL;
     }
