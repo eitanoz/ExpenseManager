@@ -38,7 +38,7 @@
           <i class="fa-solid fa-download"></i> Install App
         </button>
         <div id="syncStatus" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
           <span>Cloud Synced</span>
         </div>
       </div>
@@ -116,7 +116,7 @@
                 <button type="button" onclick="switchTab('settings')" class="text-[11px] text-indigo-600 hover:underline">+ Manage</button>
               </div>
               <select id="expCard" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
-                <option value="Default Card">Loading cards...</option>
+                <option value="Default Card">Default Card</option>
               </select>
             </div>
             <div>
@@ -143,3 +143,89 @@
             <span class="text-xs font-semibold text-slate-700">Filter Month:</span>
             <select id="monthFilter" onchange="renderExpenses(); renderAnalytics();" class="text-xs font-medium rounded-lg border-slate-300 border py-1 px-2 bg-white">
               <option value="ALL">All Time</option>
+            </select>
+          </div>
+          <span id="monthSummaryBadge" class="text-xs font-medium text-slate-600">Showing all transactions</span>
+        </div>
+
+        <!-- Summary Totals -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">Filtered Spend</span>
+            <span id="totalSpend" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">Filtered Transactions</span>
+            <span id="txCount" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">0</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-500 block">Live FX Rates (to ILS)</span>
+              <span id="fxBadge" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">Loading...</span>
+            </div>
+            <div class="mt-2 space-y-1">
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>1 USD ($)</span>
+                <span class="font-bold text-slate-900">₪<span id="fxUsdRate">--</span></span>
+              </div>
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>1 EUR (€)</span>
+                <span class="font-bold text-slate-900">₪<span id="fxEurRate">--</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transactions List -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">Transactions</h3>
+            <button onclick="fetchExpenses()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3">Date</th>
+                  <th class="p-3">Description</th>
+                  <th class="p-3">Card / Account</th>
+                  <th class="p-3">Category</th>
+                  <th class="p-3 text-right">Original</th>
+                  <th class="p-3 text-right">ILS (₪)</th>
+                  <th class="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="expensesTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                  <td colspan="7" class="p-8 text-center text-slate-400">Loading expenses...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: ANALYTICS & STATS -->
+      <section id="view-analytics" class="hidden space-y-6">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">Avg Ticket</span>
+            <span id="statAvgTicket" class="text-lg sm:text-xl font-bold text-slate-900 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">Largest Single Expense</span>
+            <span id="statMaxExpense" class="text-lg sm:text-xl font-bold text-indigo-600 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">Top Category</span>
+            <span id="statTopCat" class="text-sm sm:text-base font-bold text-slate-800 mt-1 block truncate">-</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">Most Used Card</span>
+            <span id="statTopCard" class="text-sm sm:text-base font-bold text-slate-800 mt-1 block truncate">-</span>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p
