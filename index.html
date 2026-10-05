@@ -276,12 +276,19 @@
       </section>
 
       <!-- TAB 3: PACKAGES -->
-      <section id="view-packages" class="hidden space-y-6">
+      <section id="view-packages" class="space-y-6 hidden">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-          <h2 class="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Forwarder Order
-          </h2>
-          <form id="packageForm" onsubmit="handleNewPackage(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="pkgFormHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order
+            </h2>
+            <button type="button" id="cancelPkgEditBtn" onclick="cancelPackageEdit()" class="hidden text-xs text-rose-500 hover:underline">
+              <i class="fa-solid fa-xmark"></i> Cancel Edit
+            </button>
+          </div>
+
+          <form id="packageForm" onsubmit="handlePackageSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <input type="hidden" id="editPkgId" value="" />
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Item Description</label>
               <input type="text" id="pkgDesc" placeholder="e.g. Mechanical Keyboard" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
@@ -316,7 +323,7 @@
               </div>
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder Shipping Fee</label>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder Shipping Fee (Can update on arrival)</label>
               <div class="flex gap-2">
                 <input type="number" step="0.01" id="pkgShippingFee" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                 <select id="pkgShippingCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
@@ -336,9 +343,9 @@
                 <option value="Delivered">Delivered</option>
               </select>
             </div>
-            <div class="sm:col-span-2 md:col-span-3 flex justify-end">
-              <button type="submit" id="addPkgBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-box"></i> Save Package
+            <div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2">
+              <button type="submit" id="pkgSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>
               </button>
             </div>
           </form>
@@ -361,7 +368,7 @@
                   <th class="p-3 text-right">Item Cost</th>
                   <th class="p-3 text-right">Shipping Fee</th>
                   <th class="p-3 text-right">Total Landed (₪)</th>
-                  <th class="p-3 text-center">Action</th>
+                  <th class="p-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody id="packagesTableBody" class="divide-y divide-slate-100 text-slate-700">
@@ -528,9 +535,9 @@
       }
     }
 
-    if (localStorage.getItem("cleanStorage_v10") !== "true") {
+    if (localStorage.getItem("cleanStorage_v11") !== "true") {
       localStorage.clear();
-      localStorage.setItem("cleanStorage_v10", "true");
+      localStorage.setItem("cleanStorage_v11", "true");
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -1081,7 +1088,7 @@
       });
     }
 
-    /* ------------------- PACKAGES LOGIC ------------------- */
+    /* ------------------- PACKAGES & EDIT LOGIC ------------------- */
     async function fetchPackages() {
       try {
         const res = await fetch(`${getScriptUrl()}?sheet=Packages`);
@@ -1098,11 +1105,50 @@
       }
     }
 
-    async function handleNewPackage(e) {
+    function startPackageEdit(id) {
+      const pkg = packages.find(x => String(x.id) === String(id));
+      if (!pkg) return;
+
+      document.getElementById("editPkgId").value = pkg.id;
+      document.getElementById("pkgDesc").value = pkg.itemDescription || '';
+      document.getElementById("pkgTracking").value = pkg.trackingNumber || '';
+      document.getElementById("pkgForwarder").value = pkg.forwarder || 'RedBox';
+      document.getElementById("pkgCost").value = pkg.itemCost || '';
+      document.getElementById("pkgCurrency").value = pkg.currency || 'USD';
+      
+      const shipVal = pkg.shippingFee !== undefined ? pkg.shippingFee : (pkg.shippingFeeIls || '');
+      document.getElementById("pkgShippingFee").value = shipVal;
+      document.getElementById("pkgShippingCurrency").value = pkg.shippingCurrency || 'USD';
+      document.getElementById("pkgStatus").value = pkg.status || 'Ordered';
+
+      document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500"></i> Update Package & Shipping Fee`;
+      document.getElementById("pkgSubmitText").textContent = "Update Package";
+      document.getElementById("cancelPkgEditBtn").classList.remove("hidden");
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelPackageEdit() {
+      document.getElementById("editPkgId").value = "";
+      document.getElementById("pkgDesc").value = "";
+      document.getElementById("pkgTracking").value = "";
+      document.getElementById("pkgCost").value = "";
+      document.getElementById("pkgShippingFee").value = "";
+      document.getElementById("pkgStatus").value = "Ordered";
+
+      document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order`;
+      document.getElementById("pkgSubmitText").textContent = "Save Package";
+      document.getElementById("cancelPkgEditBtn").classList.add("hidden");
+    }
+
+    async function handlePackageSubmit(e) {
       e.preventDefault();
-      const addBtn = document.getElementById("addPkgBtn");
-      addBtn.disabled = true;
-      addBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saving...`;
+      const submitBtn = document.getElementById("pkgSubmitBtn");
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Processing...`;
+
+      const editId = document.getElementById("editPkgId").value;
+      const isEditing = Boolean(editId);
 
       const desc = document.getElementById("pkgDesc").value;
       const tracking = document.getElementById("pkgTracking").value;
@@ -1126,10 +1172,10 @@
       const shippingFeeIls = (shippingAmount * shippingRate).toFixed(2);
 
       const totalCostIls = (itemCostIls + parseFloat(shippingFeeIls)).toFixed(2);
-      const newId = Date.now().toString();
+      const targetId = isEditing ? editId : Date.now().toString();
 
-      const newPkg = {
-        id: newId,
+      const pkgPayload = {
+        id: targetId,
         itemDescription: desc,
         trackingNumber: tracking,
         forwarder: forwarder,
@@ -1143,26 +1189,34 @@
         updatedAt: new Date().toISOString()
       };
 
-      packages.unshift(newPkg);
+      if (isEditing) {
+        packages = packages.map(x => String(x.id) === String(editId) ? { ...x, ...pkgPayload } : x);
+      } else {
+        packages.unshift(pkgPayload);
+      }
+
       renderPackages();
       localStorage.setItem("packages", JSON.stringify(packages));
-
-      document.getElementById("pkgDesc").value = "";
-      document.getElementById("pkgTracking").value = "";
-      document.getElementById("pkgCost").value = "";
-      document.getElementById("pkgShippingFee").value = "";
+      cancelPackageEdit();
 
       try {
         await fetch(getScriptUrl(), {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "add", sheet: "Packages", data: newPkg })
+          body: JSON.stringify({
+            action: isEditing ? "update" : "add",
+            sheet: "Packages",
+            id: editId || undefined,
+            data: pkgPayload
+          })
         });
+        setSyncStatus("Cloud Synced", "emerald");
       } catch (err) {
-        console.error("Failed to save package to Google Sheet:", err);
+        console.error("Failed to sync package to Google Sheet:", err);
+        setSyncStatus("Saved locally (Sync pending)", "amber");
       } finally {
-        addBtn.disabled = false;
-        addBtn.innerHTML = `<i class="fa-solid fa-box"></i> Save Package`;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>`;
       }
     }
 
@@ -1216,8 +1270,11 @@
             <td class="p-3 text-right font-medium text-slate-700">${itemCurrSymbol}${costVal.toFixed(2)}</td>
             <td class="p-3 text-right font-medium text-slate-700">${shipCurrSymbol}${shippingFeeVal.toFixed(2)}</td>
             <td class="p-3 text-right font-semibold text-slate-900">₪${totalVal.toFixed(2)}</td>
-            <td class="p-3 text-center">
-              <button onclick="deletePackage('${pkg.id}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded">
+            <td class="p-3 text-center whitespace-nowrap space-x-1">
+              <button onclick="startPackageEdit('${pkg.id}')" class="text-indigo-600 hover:text-indigo-800 text-xs px-2 py-1 rounded" title="Edit / Update Shipping Fee">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deletePackage('${pkg.id}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded" title="Delete">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </td>
