@@ -9,13 +9,13 @@
   "theme_color": "#4f46e5",
   "icons": [
     {
-      "src": "/ExpenseManager/icon.png",
+      "src": "/ExpenseManager/minimalist-indigo-icon.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/ExpenseManager/icon.png",
+      "src": "/ExpenseManager/minimalist-indigo-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
