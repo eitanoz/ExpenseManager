@@ -495,6 +495,82 @@
       navigator.serviceWorker.register('./sw.js').then(() => console.log('Service Worker Registered')).catch((err) => console.warn('Service Worker registration failed:', err));
     }
 
+    async function handleExpenseSubmit(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById("expSubmitBtn");
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Processing...`;
+
+      const editId = document.getElementById("editExpId").value;
+      const isEditing = Boolean(editId);
+
+      const date = document.getElementById("expDate").value;
+      const desc = document.getElementById("expDesc").value;
+      const rawAmount = parseFloat(document.getElementById("expAmount").value);
+      const amount = isNaN(rawAmount) ? 0 : rawAmount;
+      const currency = document.getElementById("expCurrency").value;
+      const category = document.getElementById("expCategory").value;
+      const card = document.getElementById("expCard").value;
+      const method = document.getElementById("expMethod").value;
+
+      const rate = RATES[currency] || 1;
+      const ilsAmount = (amount * rate).toFixed(2);
+
+      const expensePayload = {
+        id: isEditing ? editId : Date.now().toString(),
+        date: date,
+        description: desc,
+        amount: amount,
+        currency: currency,
+        ilsAmount: ilsAmount,
+        category: category,
+        card: card,
+        paymentMethod: method,
+        isRecurring: "No",
+        createdAt: isEditing ? undefined : new Date().toISOString()
+      };
+
+      // 1. Optimistic local update (instantly updates UI)
+      if (isEditing) {
+        expenses = expenses.map(x => String(x.id) === String(editId) ? { ...x, ...expensePayload } : x);
+      } else {
+        expenses.unshift(expensePayload);
+      }
+
+      updateMonthFilterOptions();
+      renderExpenses();
+      renderAnalytics();
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+      cancelExpenseEdit();
+
+      // 2. Network sync with a 10-second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        await fetch(getScriptUrl(), {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: isEditing ? "update" : "add",
+            sheet: "Expenses",
+            id: editId || undefined,
+            data: expensePayload
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        setSyncStatus("Cloud Synced", "emerald");
+      } catch (err) {
+        console.warn("Background sync delay or error:", err);
+        setSyncStatus("Saved locally (Sync pending)", "amber");
+      } finally {
+        // Guarantee button always reverts back to normal
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>`;
+      }
+    }
+
     function getScriptUrl() {
       return localStorage.getItem("customScriptUrl") || DEFAULT_SCRIPT_URL;
     }
