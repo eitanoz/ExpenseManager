@@ -4,9 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense & Package Manager</title>
+  
+  <!-- PWA Meta tags for Android & iOS standalone installation -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2830/2830284.png" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- Chart.js for interactive analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
@@ -24,9 +32,14 @@
           Connected to Google Sheets &bull; Base Currency: <span class="font-semibold text-slate-700">ILS (₪)</span>
         </p>
       </div>
-      <div id="syncStatus" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span>Cloud Synced</span>
+      <div class="flex items-center gap-2 self-start sm:self-auto">
+        <button id="pwaInstallBtn" onclick="installPWA()" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition">
+          <i class="fa-solid fa-download"></i> Install App
+        </button>
+        <div id="syncStatus" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Cloud Synced</span>
+        </div>
       </div>
     </header>
 
@@ -50,12 +63,19 @@
     <main>
       <!-- TAB 1: EXPENSES -->
       <section id="view-expenses" class="space-y-6">
-        <!-- New Expense Form -->
+        <!-- New / Edit Expense Form -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-          <h2 class="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense
-          </h2>
-          <form id="expenseForm" onsubmit="handleNewExpense(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="formHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense
+            </h2>
+            <button type="button" id="cancelEditBtn" onclick="cancelExpenseEdit()" class="hidden text-xs text-rose-500 hover:underline">
+              <i class="fa-solid fa-xmark"></i> Cancel Edit
+            </button>
+          </div>
+
+          <form id="expenseForm" onsubmit="handleExpenseSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <input type="hidden" id="editExpId" value="" />
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Date</label>
               <input type="date" id="expDate" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
@@ -105,9 +125,9 @@
                 <option value="Cash / Bit">Cash / Bit</option>
               </select>
             </div>
-            <div class="sm:col-span-2 md:col-span-3 flex justify-end">
-              <button type="submit" id="addExpBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-check"></i> Save Expense
+            <div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2">
+              <button type="submit" id="expSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>
               </button>
             </div>
           </form>
@@ -171,7 +191,7 @@
                   <th class="p-3">Category</th>
                   <th class="p-3 text-right">Original</th>
                   <th class="p-3 text-right">ILS (₪)</th>
-                  <th class="p-3 text-center">Action</th>
+                  <th class="p-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody id="expensesTableBody" class="divide-y divide-slate-100 text-slate-700">
@@ -186,7 +206,6 @@
 
       <!-- TAB 2: ANALYTICS & STATS -->
       <section id="view-analytics" class="hidden space-y-6">
-        <!-- High-level Analytics KPIs -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
             <span class="text-xs font-medium text-slate-500 block">Avg Ticket</span>
@@ -206,7 +225,6 @@
           </div>
         </div>
 
-        <!-- Monthly Spend Trend Chart -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
           <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
             <i class="fa-solid fa-chart-column text-indigo-500"></i> Monthly Spend Overview (₪ ILS)
@@ -216,7 +234,6 @@
           </div>
         </div>
 
-        <!-- Breakdowns Grid: Category & Card -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
             <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -236,7 +253,6 @@
           </div>
         </div>
 
-        <!-- Card Breakdown Detail Table -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="p-4 border-b border-slate-100">
             <h3 class="text-sm font-semibold text-slate-800">Card Utilization Breakdown</h3>
@@ -261,7 +277,6 @@
 
       <!-- TAB 3: PACKAGES -->
       <section id="view-packages" class="hidden space-y-6">
-        <!-- Add Package Form -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
           <h2 class="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
             <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Forwarder Order
@@ -321,7 +336,6 @@
           </form>
         </div>
 
-        <!-- Package List -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="p-4 border-b border-slate-100 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-slate-800">Tracked Packages</h3>
@@ -354,7 +368,7 @@
 
       <!-- TAB 4: CARDS & SETTINGS -->
       <section id="view-settings" class="hidden space-y-6">
-        <!-- Card Manager Card -->
+        <!-- Card Nicknames Manager -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
@@ -368,7 +382,6 @@
             </button>
           </div>
 
-          <!-- Add New Card Form -->
           <form id="cardForm" onsubmit="handleNewCard(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
             <div>
               <label class="block text-[11px] font-medium text-slate-600 mb-1">Nickname</label>
@@ -389,7 +402,6 @@
             </div>
           </form>
 
-          <!-- Current Saved Cards Table -->
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
               <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
@@ -401,28 +413,47 @@
                 </tr>
               </thead>
               <tbody id="cardsTableBody" class="divide-y divide-slate-100 text-slate-700">
-                <tr>
-                  <td colspan="4" class="p-4 text-center text-slate-400">Loading cards...</td>
-                </tr>
+                <tr><td colspan="4" class="p-4 text-center text-slate-400">Loading cards...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Connection Settings -->
+        <!-- Backend Connection & Bring-Your-Own-Sheet -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
-          <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-cloud-arrow-up text-indigo-500"></i> Backend Connection
-          </h2>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Google Apps Script Web App URL</label>
-            <input type="text" id="scriptUrlInput" class="w-full text-xs font-mono rounded-lg border-slate-300 border p-2 bg-slate-50" readonly />
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up text-indigo-500"></i> Backend Connection
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Use your own private Google Sheet database by pasting your Apps Script Web App URL below.</p>
+            </div>
+            <a href="https://docs.google.com/spreadsheets/create" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+              <i class="fa-solid fa-table"></i> New Sheet
+            </a>
           </div>
-          <div class="pt-4 border-t border-slate-200 flex flex-wrap gap-3">
-            <button onclick="clearLocalStorage()" class="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-medium rounded-lg border border-rose-200">
-              <i class="fa-solid fa-trash"></i> Wipe Local Cache
-            </button>
-            <button onclick="fetchLiveRates(); fetchCards(); fetchExpenses(); fetchPackages();" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Your Google Apps Script Web App URL</label>
+            <div class="flex gap-2">
+              <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full text-xs font-mono rounded-lg border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+              <button onclick="saveCustomScriptUrl()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg shadow-sm whitespace-nowrap">
+                Save URL
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Stored locally in your browser. Leaving this empty uses the default shared backend.</p>
+          </div>
+
+          <div class="pt-3 border-t border-slate-200 flex flex-wrap gap-3 items-center justify-between">
+            <div class="flex gap-2">
+              <button onclick="resetDefaultScriptUrl()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">
+                Reset to Default
+              </button>
+              <button onclick="clearLocalStorage()" class="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-medium rounded-lg border border-rose-200">
+                <i class="fa-solid fa-trash"></i> Wipe Local Cache
+              </button>
+            </div>
+            <button onclick="fetchLiveRates(); fetchCards(); fetchExpenses(); fetchPackages();" class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
               <i class="fa-solid fa-arrows-rotate"></i> Force Refresh All
             </button>
           </div>
@@ -432,31 +463,71 @@
   </div>
 
   <script>
-    // GOOGLE APPS SCRIPT ENDPOINT
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
-    
-    // Dynamic FX Rates
+    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
     const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
 
-    // In-memory states
     let expenses = [];
     let packages = [];
     let cards = [];
 
-    // Chart instances
     let trendChartInstance = null;
     let categoryChartInstance = null;
     let cardChartInstance = null;
+    let deferredPrompt = null;
 
-    // Force flush cache for version 7 update
-    if (localStorage.getItem("cleanStorage_v7") !== "true") {
+    function getScriptUrl() {
+      return localStorage.getItem("customScriptUrl") || DEFAULT_SCRIPT_URL;
+    }
+
+    function saveCustomScriptUrl() {
+      const input = document.getElementById("scriptUrlInput").value.trim();
+      if (!input) {
+        alert("Please enter a valid Google Apps Script Web App URL.");
+        return;
+      }
+      localStorage.setItem("customScriptUrl", input);
+      alert("Backend URL saved! Reloading data...");
+      fetchCards();
+      fetchExpenses();
+      fetchPackages();
+    }
+
+    function resetDefaultScriptUrl() {
+      localStorage.removeItem("customScriptUrl");
+      document.getElementById("scriptUrlInput").value = DEFAULT_SCRIPT_URL;
+      alert("Reset to default backend. Reloading...");
+      fetchCards();
+      fetchExpenses();
+      fetchPackages();
+    }
+
+    // PWA Install Prompt Listener
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('pwaInstallBtn');
+      if (btn) btn.classList.remove('hidden');
+    });
+
+    async function installPWA() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          document.getElementById('pwaInstallBtn').classList.add('hidden');
+        }
+        deferredPrompt = null;
+      }
+    }
+
+    if (localStorage.getItem("cleanStorage_v9") !== "true") {
       localStorage.clear();
-      localStorage.setItem("cleanStorage_v7", "true");
+      localStorage.setItem("cleanStorage_v9", "true");
     }
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("expDate").valueAsDate = new Date();
-      document.getElementById("scriptUrlInput").value = GOOGLE_SCRIPT_URL;
+      document.getElementById("scriptUrlInput").value = getScriptUrl();
       fetchLiveRates();
       fetchCards();
       fetchExpenses();
@@ -481,7 +552,7 @@
           badge.className = "text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium";
         }
       } catch (err) {
-        console.warn("Unable to fetch live FX rates, using fallback:", err);
+        console.warn("Using fallback FX rates:", err);
         document.getElementById("fxUsdRate").textContent = RATES.USD.toFixed(2);
         document.getElementById("fxEurRate").textContent = RATES.EUR.toFixed(2);
         badge.textContent = "Fallback";
@@ -507,7 +578,7 @@
     /* ------------------- CARDS LOGIC ------------------- */
     async function fetchCards() {
       try {
-        const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Cards`);
+        const res = await fetch(`${getScriptUrl()}?sheet=Cards`);
         const data = await res.json();
         cards = Array.isArray(data) 
           ? data.filter(c => c && c.id && String(c.id).trim() !== "" && c.nickname && String(c.nickname).trim() !== "") 
@@ -515,7 +586,7 @@
         populateCardDropdown();
         renderCardsTable();
       } catch (err) {
-        console.warn("Could not load Cards sheet:", err);
+        console.warn("Could not load Cards:", err);
         const local = localStorage.getItem("cards");
         cards = local ? JSON.parse(local) : [
           { id: "c1", nickname: "Max Personal", issuer: "Max", billingCycleDay: "10" },
@@ -583,14 +654,14 @@
       document.getElementById("cardBillingDay").value = "";
 
       try {
-        await fetch(GOOGLE_SCRIPT_URL, {
+        await fetch(getScriptUrl(), {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ action: "add", sheet: "Cards", data: newCard })
         });
         setSyncStatus("Cloud Synced", "emerald");
       } catch (err) {
-        console.error("Failed to save card to sheet:", err);
+        console.error("Failed to save card:", err);
       } finally {
         addBtn.disabled = false;
         addBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Save Card`;
@@ -605,7 +676,7 @@
       localStorage.setItem("cards", JSON.stringify(cards));
 
       try {
-        await fetch(GOOGLE_SCRIPT_URL, {
+        await fetch(getScriptUrl(), {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ action: "delete", sheet: "Cards", id: id })
@@ -615,11 +686,11 @@
       }
     }
 
-    /* ------------------- EXPENSES LOGIC ------------------- */
+    /* ------------------- EXPENSES & EDIT LOGIC ------------------- */
     async function fetchExpenses() {
       setSyncStatus("Syncing with Sheet...", "amber");
       try {
-        const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Expenses`);
+        const res = await fetch(`${getScriptUrl()}?sheet=Expenses`);
         const data = await res.json();
         
         expenses = Array.isArray(data)
@@ -637,7 +708,7 @@
         renderAnalytics();
         setSyncStatus("Cloud Synced", "emerald");
       } catch (err) {
-        console.error("Error reading from Google Sheet:", err);
+        console.error("Error reading expenses:", err);
         setSyncStatus("Offline / Cached", "slate");
         const local = localStorage.getItem("expenses");
         expenses = local ? JSON.parse(local) : [];
@@ -654,7 +725,7 @@
 
       expenses.forEach(item => {
         if (item.date && item.date.length >= 7) {
-          months.add(item.date.substring(0, 7)); // 'YYYY-MM'
+          months.add(item.date.substring(0, 7));
         }
       });
 
@@ -670,11 +741,45 @@
       }
     }
 
-    async function handleNewExpense(e) {
+    function startExpenseEdit(id) {
+      const exp = expenses.find(x => String(x.id) === String(id));
+      if (!exp) return;
+
+      document.getElementById("editExpId").value = exp.id;
+      document.getElementById("expDate").value = exp.date || '';
+      document.getElementById("expDesc").value = exp.description || '';
+      document.getElementById("expAmount").value = exp.amount || '';
+      document.getElementById("expCurrency").value = exp.currency || 'ILS';
+      document.getElementById("expCategory").value = exp.category || 'General';
+      document.getElementById("expCard").value = exp.card || '';
+      document.getElementById("expMethod").value = exp.paymentMethod || 'Credit Card';
+
+      document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500"></i> Edit Expense`;
+      document.getElementById("expSubmitText").textContent = "Update Expense";
+      document.getElementById("cancelEditBtn").classList.remove("hidden");
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelExpenseEdit() {
+      document.getElementById("editExpId").value = "";
+      document.getElementById("expDesc").value = "";
+      document.getElementById("expAmount").value = "";
+      document.getElementById("expDate").valueAsDate = new Date();
+
+      document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense`;
+      document.getElementById("expSubmitText").textContent = "Save Expense";
+      document.getElementById("cancelEditBtn").classList.add("hidden");
+    }
+
+    async function handleExpenseSubmit(e) {
       e.preventDefault();
-      const addBtn = document.getElementById("addExpBtn");
-      addBtn.disabled = true;
-      addBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saving...`;
+      const submitBtn = document.getElementById("expSubmitBtn");
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Processing...`;
+
+      const editId = document.getElementById("editExpId").value;
+      const isEditing = Boolean(editId);
 
       const date = document.getElementById("expDate").value;
       const desc = document.getElementById("expDesc").value;
@@ -687,10 +792,9 @@
 
       const rate = RATES[currency] || 1;
       const ilsAmount = (amount * rate).toFixed(2);
-      const newId = Date.now().toString();
 
-      const newExpense = {
-        id: newId,
+      const expensePayload = {
+        id: isEditing ? editId : Date.now().toString(),
         date: date,
         description: desc,
         amount: amount,
@@ -700,31 +804,39 @@
         card: card,
         paymentMethod: method,
         isRecurring: "No",
-        createdAt: new Date().toISOString()
+        createdAt: isEditing ? undefined : new Date().toISOString()
       };
 
-      expenses.unshift(newExpense);
+      if (isEditing) {
+        expenses = expenses.map(x => String(x.id) === String(editId) ? { ...x, ...expensePayload } : x);
+      } else {
+        expenses.unshift(expensePayload);
+      }
+
       updateMonthFilterOptions();
       renderExpenses();
       renderAnalytics();
       localStorage.setItem("expenses", JSON.stringify(expenses));
-
-      document.getElementById("expDesc").value = "";
-      document.getElementById("expAmount").value = "";
+      cancelExpenseEdit();
 
       try {
-        await fetch(GOOGLE_SCRIPT_URL, {
+        await fetch(getScriptUrl(), {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "add", sheet: "Expenses", data: newExpense })
+          body: JSON.stringify({
+            action: isEditing ? "update" : "add",
+            sheet: "Expenses",
+            id: editId || undefined,
+            data: expensePayload
+          })
         });
         setSyncStatus("Cloud Synced", "emerald");
       } catch (err) {
-        console.error("Failed to save to Google Sheet:", err);
+        console.error("Failed to sync expense:", err);
         setSyncStatus("Saved locally (Sync pending)", "amber");
       } finally {
-        addBtn.disabled = false;
-        addBtn.innerHTML = `<i class="fa-solid fa-check"></i> Save Expense`;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>`;
       }
     }
 
@@ -736,7 +848,7 @@
       localStorage.setItem("expenses", JSON.stringify(expenses));
 
       try {
-        await fetch(GOOGLE_SCRIPT_URL, {
+        await fetch(getScriptUrl(), {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ action: "delete", sheet: "Expenses", id: id })
@@ -787,8 +899,11 @@
             <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">${item.category || 'General'}</span></td>
             <td class="p-3 text-right font-medium">${currSymbol}${amountDisplay}</td>
             <td class="p-3 text-right font-semibold text-slate-900">₪${ils.toFixed(2)}</td>
-            <td class="p-3 text-center">
-              <button onclick="deleteExpense('${item.id}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded">
+            <td class="p-3 text-center whitespace-nowrap space-x-1">
+              <button onclick="startExpenseEdit('${item.id}')" class="text-indigo-600 hover:text-indigo-800 text-xs px-2 py-1 rounded" title="Edit">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deleteExpense('${item.id}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-1 rounded" title="Delete">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </td>
@@ -800,7 +915,7 @@
       document.getElementById("txCount").textContent = filtered.length;
     }
 
-    /* ------------------- ADVANCED ANALYTICS & STATS ------------------- */
+    /* ------------------- ANALYTICS ------------------- */
     function renderAnalytics() {
       const selectedMonth = document.getElementById("monthFilter").value;
       const filtered = (selectedMonth !== "ALL")
@@ -816,7 +931,6 @@
         return;
       }
 
-      // Calculations
       let totalIls = 0;
       let maxExpense = 0;
       const catTotals = {};
@@ -840,7 +954,6 @@
       document.getElementById("statAvgTicket").textContent = `₪${avgTicket.toFixed(2)}`;
       document.getElementById("statMaxExpense").textContent = `₪${maxExpense.toFixed(2)}`;
 
-      // Top Category
       let topCat = "-";
       let topCatVal = 0;
       for (const [k, v] of Object.entries(catTotals)) {
@@ -848,7 +961,6 @@
       }
       document.getElementById("statTopCat").textContent = `${topCat} (₪${topCatVal.toFixed(0)})`;
 
-      // Top Card
       let topCard = "-";
       let topCardVal = 0;
       for (const [k, v] of Object.entries(cardTotals)) {
@@ -856,7 +968,6 @@
       }
       document.getElementById("statTopCard").textContent = `${topCard} (₪${topCardVal.toFixed(0)})`;
 
-      // Render Card Breakdown Table
       const cardTbody = document.getElementById("cardStatsTableBody");
       cardTbody.innerHTML = Object.keys(cardTotals).map(cName => {
         const cTotal = cardTotals[cName];
@@ -871,14 +982,12 @@
         `;
       }).join('');
 
-      // Build / Update Charts
       buildMonthlyTrendChart();
       buildCategoryChart(catTotals);
       buildCardChart(cardTotals);
     }
 
     function buildMonthlyTrendChart() {
-      // Group all expenses by month
       const monthlyData = {};
       expenses.forEach(item => {
         if (item.date && item.date.length >= 7) {
@@ -907,9 +1016,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
+          plugins: { legend: { display: false } },
           scales: {
             y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
             x: { grid: { display: false } }
@@ -937,9 +1044,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
-          }
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
         }
       });
     }
@@ -963,9 +1068,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
-          }
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
         }
       });
     }
@@ -973,7 +1076,7 @@
     /* ------------------- PACKAGES LOGIC ------------------- */
     async function fetchPackages() {
       try {
-        const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Packages`);
+        const res = await fetch(`${getScriptUrl()}?sheet=Packages`);
         const data = await res.json();
         packages = Array.isArray(data)
           ? data.filter(item => item && item.id && String(item.id).trim() !== "" && item.itemDescription)
@@ -1031,7 +1134,7 @@
       document.getElementById("pkgShippingFee").value = "";
 
       try {
-        await fetch(GOOGLE_SCRIPT_URL, {
+        await fetch(getScriptUrl(), {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ action: "add", sheet: "Packages", data: newPkg })
@@ -1051,7 +1154,7 @@
       localStorage.setItem("packages", JSON.stringify(packages));
 
       try {
-        await fetch(GOOGLE_SCRIPT_URL, {
+        await fetch(getScriptUrl(), {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ action: "delete", sheet: "Packages", id: id })
