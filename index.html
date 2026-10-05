@@ -302,4 +302,864 @@
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder / Carrier</label>
-              <select id="pkgForwarder" class="w-full text-sm rounded-lg border-slate
+              <select id="pkgForwarder" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                <option value="RedBox">RedBox</option>
+                <option value="Dealtas">Dealtas</option>
+                <option value="UShops">UShops (USA/UK)</option>
+                <option value="Buy2USA">Buy2USA</option>
+                <option value="Direct Shipping">Direct Shipping (Amazon / AliExpress)</option>
+                <option value="Shipito">Shipito</option>
+                <option value="Israel Post">Israel Post / Doar</option>
+                <option value="DHL / FedEx / UPS">DHL / FedEx / UPS</option>
+                <option value="Other">Other Forwarder</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Item Purchase Cost</label>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="pkgCost" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="pkgCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="USD">$ USD</option>
+                  <option value="ILS">₪ ILS</option>
+                  <option value="EUR">€ EUR</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder Shipping Fee</label>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="pkgShippingFee" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="pkgShippingCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="USD">$ USD</option>
+                  <option value="ILS">₪ ILS</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Current Status</label>
+              <select id="pkgStatus" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+                <option value="Ordered">Ordered / Awaiting Warehouse</option>
+                <option value="Received at US Hub">Received at Forwarder Hub</option>
+                <option value="In Transit to IL">In Transit to Israel</option>
+                <option value="Customs Clearance">Customs Clearance</option>
+                <option value="Out for Delivery">Out for Delivery</option>
+                <option value="Delivered">Delivered</option>
+              </select>
+            </div>
+            <div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2">
+              <button type="submit" id="pkgSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">Tracked Packages</h3>
+            <button onclick="fetchPackages()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3">Item</th>
+                  <th class="p-3">Carrier / Tracking</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3 text-right">Item Cost</th>
+                  <th class="p-3 text-right">Shipping Fee</th>
+                  <th class="p-3 text-right">Total Landed (₪)</th>
+                  <th class="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="packagesTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                  <td colspan="7" class="p-8 text-center text-slate-400">Loading packages...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: CARDS & SETTINGS -->
+      <section id="view-settings" class="hidden space-y-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                <i class="fa-regular fa-credit-card text-indigo-500"></i> Manage Card Nicknames
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Saved to your Google Sheet <code>Cards</code> tab.</p>
+            </div>
+            <button onclick="fetchCards()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Reload Cards
+            </button>
+          </div>
+
+          <form id="cardForm" onsubmit="handleNewCard(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Nickname</label>
+              <input type="text" id="cardNickname" placeholder="e.g. Max Executive" required class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Issuer / Type</label>
+              <input type="text" id="cardIssuer" placeholder="e.g. Max, Cal, Isracard" required class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Billing Day (1-31)</label>
+              <input type="number" min="1" max="31" id="cardBillingDay" placeholder="e.g. 10" class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div class="flex items-end">
+              <button type="submit" id="addCardBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs py-2 px-3 rounded shadow-sm transition flex items-center justify-center gap-1">
+                <i class="fa-solid fa-plus"></i> Save Card
+              </button>
+            </div>
+          </form>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-2.5">Card Nickname</th>
+                  <th class="p-2.5">Issuer</th>
+                  <th class="p-2.5">Billing Day</th>
+                  <th class="p-2.5 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="cardsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="4" class="p-4 text-center text-slate-400">Loading cards...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up text-indigo-500"></i> Backend Connection
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Google Apps Script Web App URL.</p>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Web App URL</label>
+            <div class="flex gap-2">
+              <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full text-xs font-mono rounded-lg border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+              <button onclick="saveCustomScriptUrl()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg shadow-sm whitespace-nowrap">
+                Save URL
+              </button>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-200 flex flex-wrap gap-3 items-center justify-between">
+            <div class="flex gap-2">
+              <button onclick="resetDefaultScriptUrl()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">
+                Reset to Default
+              </button>
+              <button onclick="clearLocalStorage()" class="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-medium rounded-lg border border-rose-200">
+                <i class="fa-solid fa-trash"></i> Wipe Local Cache
+              </button>
+            </div>
+            <button onclick="fetchAll()" class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
+              <i class="fa-solid fa-arrows-rotate"></i> Force Refresh All
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
+    const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
+
+    let expenses = [];
+    let packages = [];
+    let cards = [];
+    let trendChartInstance = null;
+    let categoryChartInstance = null;
+    let cardChartInstance = null;
+    let deferredPrompt = null;
+
+    function getScriptUrl() {
+      return localStorage.getItem("customScriptUrl") || DEFAULT_SCRIPT_URL;
+    }
+
+    function saveCustomScriptUrl() {
+      const input = document.getElementById("scriptUrlInput").value.trim();
+      if (!input) return alert("Please enter a valid URL.");
+      localStorage.setItem("customScriptUrl", input);
+      alert("Backend URL saved!");
+      fetchAll();
+    }
+
+    function resetDefaultScriptUrl() {
+      localStorage.removeItem("customScriptUrl");
+      document.getElementById("scriptUrlInput").value = DEFAULT_SCRIPT_URL;
+      alert("Reset to default backend.");
+      fetchAll();
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(e => console.warn(e));
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('pwaInstallBtn');
+      if (btn) btn.classList.remove('hidden');
+    });
+
+    async function installPWA() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt = null;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const dateEl = document.getElementById("expDate");
+      if (dateEl) dateEl.valueAsDate = new Date();
+      
+      const scriptInput = document.getElementById("scriptUrlInput");
+      if (scriptInput) scriptInput.value = getScriptUrl();
+
+      fetchAll();
+    });
+
+    function fetchAll() {
+      fetchLiveRates();
+      fetchCards();
+      fetchExpenses();
+      fetchPackages();
+    }
+
+    async function fetchLiveRates() {
+      try {
+        const res = await fetch("https://open.er-api.com/v6/latest/ILS");
+        const data = await res.json();
+        if (data && data.rates) {
+          RATES.USD = parseFloat((1 / data.rates.USD).toFixed(3));
+          RATES.EUR = parseFloat((1 / data.rates.EUR).toFixed(3));
+          const u = document.getElementById("fxUsdRate");
+          const e = document.getElementById("fxEurRate");
+          if (u) u.textContent = RATES.USD.toFixed(2);
+          if (e) e.textContent = RATES.EUR.toFixed(2);
+          const b = document.getElementById("fxBadge");
+          if (b) { b.textContent = "Live"; b.className = "text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"; }
+        }
+      } catch (err) {
+        console.warn("FX fallback", err);
+      }
+    }
+
+    function switchTab(tab) {
+      ['expenses', 'analytics', 'packages', 'settings'].forEach(t => {
+        const view = document.getElementById(`view-${t}`);
+        if (view) view.classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById(`tab-${t}`);
+        if (btn) {
+          btn.className = (t === tab)
+            ? "tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap"
+            : "tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap";
+        }
+      });
+      if (tab === 'analytics') renderAnalytics();
+    }
+
+    /* ------------------- CARDS ------------------- */
+    async function fetchCards() {
+      try {
+        const res = await fetch(`${getScriptUrl()}?sheet=Cards&t=${Date.now()}`);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          cards = data;
+          localStorage.setItem("cards", JSON.stringify(cards));
+        } else {
+          cards = JSON.parse(localStorage.getItem("cards") || "[]");
+        }
+      } catch (e) {
+        cards = JSON.parse(localStorage.getItem("cards") || "[]");
+      }
+      populateCardDropdown();
+      renderCardsTable();
+    }
+
+    function populateCardDropdown() {
+      const select = document.getElementById("expCard");
+      if (!select) return;
+      if (!cards.length) {
+        select.innerHTML = `<option value="Default Card">Default Card</option>`;
+        return;
+      }
+      select.innerHTML = cards.map(c => {
+        const name = c.nickname || c.Nickname || c.name || 'Card';
+        return `<option value="${name}">${name}</option>`;
+      }).join('');
+    }
+
+    function renderCardsTable() {
+      const tbody = document.getElementById("cardsTableBody");
+      if (!tbody) return;
+      if (!cards.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No cards registered yet.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = cards.map((c, i) => `
+        <tr class="hover:bg-slate-50 border-b border-slate-100">
+          <td class="p-2.5 font-medium text-slate-900">${c.nickname || c.Nickname || '-'}</td>
+          <td class="p-2.5 text-slate-600">${c.issuer || c.Issuer || '-'}</td>
+          <td class="p-2.5 text-slate-500">${c.billingCycleDay || c.BillingCycleDay || '-'}</td>
+          <td class="p-2.5 text-center">
+            <button onclick="deleteCard('${c.id || i}')" class="text-rose-500 text-xs px-2 py-0.5">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function handleNewCard(e) {
+      if (e) e.preventDefault();
+      const nickname = document.getElementById("cardNickname").value.trim();
+      const issuer = document.getElementById("cardIssuer").value.trim();
+      const day = document.getElementById("cardBillingDay").value.trim();
+      if (!nickname) return;
+
+      const card = { id: "c_" + Date.now(), nickname, issuer, billingCycleDay: day };
+      cards.push(card);
+      localStorage.setItem("cards", JSON.stringify(cards));
+      populateCardDropdown();
+      renderCardsTable();
+
+      document.getElementById("cardNickname").value = "";
+      document.getElementById("cardIssuer").value = "";
+      document.getElementById("cardBillingDay").value = "";
+
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "add", sheet: "Cards", data: card })
+      });
+    }
+
+    function deleteCard(id) {
+      cards = cards.filter((c, i) => String(c.id || i) !== String(id));
+      localStorage.setItem("cards", JSON.stringify(cards));
+      populateCardDropdown();
+      renderCardsTable();
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Cards", id: id })
+      });
+    }
+
+    /* ------------------- EXPENSES ------------------- */
+    async function fetchExpenses() {
+      setSyncStatus("Loading...", "amber");
+      try {
+        const res = await fetch(`${getScriptUrl()}?sheet=Expenses&t=${Date.now()}`);
+        const rawData = await res.json();
+        
+        if (Array.isArray(rawData)) {
+          expenses = rawData.map((item, idx) => {
+            const desc = item.description || item.Description || item.item || item.Item || item.title || Object.values(item)[1] || 'Expense';
+            const amount = parseFloat(item.amount || item.Amount || 0);
+            const currency = item.currency || item.Currency || 'ILS';
+            const ilsVal = parseFloat(item.ilsAmount || item.IlsAmount || item.ILS || item.ils || (amount * (RATES[currency] || 1)));
+
+            return {
+              id: String(item.id || item.ID || `exp_${idx}`),
+              date: String(item.date || item.Date || '').split('T')[0],
+              description: String(desc),
+              amount: isNaN(amount) ? 0 : amount,
+              currency: String(currency),
+              ilsAmount: isNaN(ilsVal) ? (amount || 0) : ilsVal,
+              category: String(item.category || item.Category || 'General'),
+              card: String(item.card || item.Card || 'Default Card'),
+              paymentMethod: String(item.paymentMethod || item.PaymentMethod || 'Credit Card')
+            };
+          });
+          localStorage.setItem("expenses", JSON.stringify(expenses));
+          setSyncStatus("Cloud Synced", "emerald");
+        }
+      } catch (err) {
+        console.warn("Sheet fetch error:", err);
+        expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
+        setSyncStatus("Cached / Offline", "slate");
+      }
+
+      updateMonthFilterOptions();
+      renderExpenses();
+      renderAnalytics();
+    }
+
+    function updateMonthFilterOptions() {
+      const select = document.getElementById("monthFilter");
+      if (!select) return;
+      const current = select.value;
+      const months = new Set();
+
+      expenses.forEach(item => {
+        if (item.date && item.date.length >= 7) months.add(item.date.substring(0, 7));
+      });
+
+      let html = `<option value="ALL">All Time</option>`;
+      Array.from(months).sort().reverse().forEach(m => {
+        html += `<option value="${m}">${m}</option>`;
+      });
+      select.innerHTML = html;
+      if (current && html.includes(`value="${current}"`)) select.value = current;
+    }
+
+    function renderExpenses() {
+      const tbody = document.getElementById("expensesTableBody");
+      const monthSelect = document.getElementById("monthFilter");
+      const selectedMonth = monthSelect ? monthSelect.value : "ALL";
+      const badge = document.getElementById("monthSummaryBadge");
+
+      let filtered = expenses;
+      if (selectedMonth !== "ALL") {
+        filtered = expenses.filter(item => item.date && item.date.startsWith(selectedMonth));
+      }
+
+      if (badge) badge.textContent = `Showing ${filtered.length} entries`;
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No transactions found.</td></tr>`;
+        document.getElementById("totalSpend").textContent = "₪0.00";
+        document.getElementById("txCount").textContent = "0";
+        return;
+      }
+
+      let totalIls = 0;
+      tbody.innerHTML = filtered.map(item => {
+        const ils = parseFloat(item.ilsAmount) || 0;
+        totalIls += ils;
+        const sym = item.currency === 'USD' ? '$' : item.currency === 'EUR' ? '€' : '₪';
+
+        return `
+          <tr class="hover:bg-slate-50 border-b border-slate-100">
+            <td class="p-3 text-slate-500 whitespace-nowrap">${item.date || '-'}</td>
+            <td class="p-3 font-medium text-slate-900">${item.description}</td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700">${item.card}</span></td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">${item.category}</span></td>
+            <td class="p-3 text-right font-medium">${sym}${Number(item.amount).toFixed(2)}</td>
+            <td class="p-3 text-right font-semibold text-slate-900">₪${ils.toFixed(2)}</td>
+            <td class="p-3 text-center whitespace-nowrap">
+              <button onclick="startExpenseEdit('${item.id}')" class="text-indigo-600 px-1.5 py-1 text-xs"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="deleteExpense('${item.id}')" class="text-rose-500 px-1.5 py-1 text-xs"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById("totalSpend").textContent = `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById("txCount").textContent = filtered.length;
+    }
+
+    function handleExpenseSubmit(e) {
+      if (e) e.preventDefault();
+
+      const btn = document.getElementById("expSubmitBtn");
+      const descEl = document.getElementById("expDesc");
+      const amountEl = document.getElementById("expAmount");
+
+      const desc = descEl ? descEl.value.trim() : "";
+      const rawAmount = amountEl ? parseFloat(amountEl.value) : 0;
+
+      if (!desc) { alert("Please enter description"); return; }
+      if (isNaN(rawAmount) || rawAmount <= 0) { alert("Please enter amount"); return; }
+
+      const date = document.getElementById("expDate").value || new Date().toISOString().split('T')[0];
+      const currency = document.getElementById("expCurrency").value;
+      const category = document.getElementById("expCategory").value;
+      const card = document.getElementById("expCard").value;
+      const method = document.getElementById("expMethod").value;
+      const editId = document.getElementById("editExpId").value.trim();
+      const isEditing = Boolean(editId);
+
+      const rate = RATES[currency] || 1;
+      const ilsAmount = (rawAmount * rate).toFixed(2);
+      const targetId = isEditing ? editId : ("exp_" + Date.now());
+
+      const payload = {
+        id: targetId,
+        date: date,
+        description: desc,
+        amount: rawAmount,
+        currency: currency,
+        ilsAmount: parseFloat(ilsAmount),
+        category: category,
+        card: card,
+        paymentMethod: method,
+        isRecurring: "No"
+      };
+
+      if (isEditing) {
+        expenses = expenses.map(x => String(x.id) === String(editId) ? payload : x);
+      } else {
+        expenses.unshift(payload);
+      }
+
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+      updateMonthFilterOptions();
+      renderExpenses();
+      renderAnalytics();
+      cancelExpenseEdit();
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>`;
+      }
+
+      setSyncStatus("Syncing...", "amber");
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          action: isEditing ? "update" : "add",
+          sheet: "Expenses",
+          id: editId || undefined,
+          data: payload
+        })
+      }).then(() => setSyncStatus("Cloud Synced", "emerald"))
+        .catch(() => setSyncStatus("Saved locally", "amber"));
+    }
+
+    function startExpenseEdit(id) {
+      const exp = expenses.find(x => String(x.id) === String(id));
+      if (!exp) return;
+      document.getElementById("editExpId").value = exp.id;
+      document.getElementById("expDate").value = exp.date;
+      document.getElementById("expDesc").value = exp.description;
+      document.getElementById("expAmount").value = exp.amount;
+      document.getElementById("expCurrency").value = exp.currency;
+      document.getElementById("expCategory").value = exp.category;
+      document.getElementById("expCard").value = exp.card;
+      document.getElementById("expMethod").value = exp.paymentMethod;
+
+      document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-pen text-amber-500"></i> Edit Expense`;
+      document.getElementById("expSubmitText").textContent = "Update Expense";
+      document.getElementById("cancelEditBtn").classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelExpenseEdit() {
+      document.getElementById("editExpId").value = "";
+      document.getElementById("expDesc").value = "";
+      document.getElementById("expAmount").value = "";
+      const d = document.getElementById("expDate");
+      if (d) d.valueAsDate = new Date();
+      document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense`;
+      document.getElementById("expSubmitText").textContent = "Save Expense";
+      document.getElementById("cancelEditBtn").classList.add("hidden");
+    }
+
+    function deleteExpense(id) {
+      if (!confirm("Delete this expense?")) return;
+      expenses = expenses.filter(x => String(x.id) !== String(id));
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+      renderExpenses();
+      renderAnalytics();
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Expenses", id: id })
+      });
+    }
+
+    /* ------------------- ANALYTICS ------------------- */
+    function renderAnalytics() {
+      const monthSelect = document.getElementById("monthFilter");
+      const selectedMonth = monthSelect ? monthSelect.value : "ALL";
+      const filtered = (selectedMonth !== "ALL")
+        ? expenses.filter(item => item.date && item.date.startsWith(selectedMonth))
+        : expenses;
+
+      if (!filtered.length) return;
+
+      let totalIls = 0;
+      let maxExpense = 0;
+      const catTotals = {};
+      const cardTotals = {};
+      const cardCounts = {};
+
+      filtered.forEach(item => {
+        const val = parseFloat(item.ilsAmount) || 0;
+        totalIls += val;
+        if (val > maxExpense) maxExpense = val;
+        catTotals[item.category] = (catTotals[item.category] || 0) + val;
+        cardTotals[item.card] = (cardTotals[item.card] || 0) + val;
+        cardCounts[item.card] = (cardCounts[item.card] || 0) + 1;
+      });
+
+      document.getElementById("statAvgTicket").textContent = `₪${(totalIls / filtered.length).toFixed(2)}`;
+      document.getElementById("statMaxExpense").textContent = `₪${maxExpense.toFixed(2)}`;
+
+      let topCat = "-", topCatVal = 0;
+      for (const [k, v] of Object.entries(catTotals)) {
+        if (v > topCatVal) { topCatVal = v; topCat = k; }
+      }
+      document.getElementById("statTopCat").textContent = `${topCat} (₪${topCatVal.toFixed(0)})`;
+
+      let topCard = "-", topCardVal = 0;
+      for (const [k, v] of Object.entries(cardTotals)) {
+        if (v > topCardVal) { topCardVal = v; topCard = k; }
+      }
+      document.getElementById("statTopCard").textContent = `${topCard} (₪${topCardVal.toFixed(0)})`;
+
+      const cardTbody = document.getElementById("cardStatsTableBody");
+      if (cardTbody) {
+        cardTbody.innerHTML = Object.keys(cardTotals).map(cName => {
+          const cTotal = cardTotals[cName];
+          const share = totalIls > 0 ? ((cTotal / totalIls) * 100).toFixed(1) : 0;
+          return `
+            <tr class="hover:bg-slate-50 border-b border-slate-100">
+              <td class="p-3 font-medium text-slate-900">${cName}</td>
+              <td class="p-3 text-center text-slate-600">${cardCounts[cName]}</td>
+              <td class="p-3 text-right font-semibold text-slate-900">₪${cTotal.toFixed(2)}</td>
+              <td class="p-3 text-right text-slate-500">${share}%</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      buildCharts(catTotals, cardTotals);
+    }
+
+    function buildCharts(catTotals, cardTotals) {
+      const monthlyData = {};
+      expenses.forEach(item => {
+        if (item.date && item.date.length >= 7) {
+          const ym = item.date.substring(0, 7);
+          monthlyData[ym] = (monthlyData[ym] || 0) + (parseFloat(item.ilsAmount) || 0);
+        }
+      });
+
+      const mLabels = Object.keys(monthlyData).sort();
+      const mPoints = mLabels.map(m => monthlyData[m]);
+      const mCanvas = document.getElementById("monthlyTrendChart");
+      if (mCanvas) {
+        if (trendChartInstance) trendChartInstance.destroy();
+        trendChartInstance = new Chart(mCanvas.getContext("2d"), {
+          type: 'bar',
+          data: {
+            labels: mLabels,
+            datasets: [{ label: 'Spend', data: mPoints, backgroundColor: '#6366f1', borderRadius: 6 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+      }
+
+      const catCanvas = document.getElementById("categoryChart");
+      if (catCanvas) {
+        if (categoryChartInstance) categoryChartInstance.destroy();
+        categoryChartInstance = new Chart(catCanvas.getContext("2d"), {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(catTotals),
+            datasets: [{
+              data: Object.values(catTotals),
+              backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#ef4444', '#06b6d4', '#3b82f6', '#8b5cf6', '#14b8a6']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+
+      const cardCanvas = document.getElementById("cardChart");
+      if (cardCanvas) {
+        if (cardChartInstance) cardChartInstance.destroy();
+        cardChartInstance = new Chart(cardCanvas.getContext("2d"), {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(cardTotals),
+            datasets: [{
+              data: Object.values(cardTotals),
+              backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#84cc16']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+    }
+
+    /* ------------------- PACKAGES ------------------- */
+    async function fetchPackages() {
+      try {
+        const res = await fetch(`${getScriptUrl()}?sheet=Packages&t=${Date.now()}`);
+        const rawData = await res.json();
+        if (Array.isArray(rawData)) {
+          packages = rawData.map((item, idx) => ({
+            id: String(item.id || item.ID || `pkg_${idx}`),
+            itemDescription: String(item.itemDescription || item.ItemDescription || item.item || item.description || 'Package'),
+            trackingNumber: String(item.trackingNumber || item.TrackingNumber || item.tracking || ''),
+            forwarder: String(item.forwarder || item.Forwarder || 'RedBox'),
+            status: String(item.status || item.Status || 'Ordered'),
+            itemCost: parseFloat(item.itemCost || item.ItemCost || 0) || 0,
+            currency: String(item.currency || item.Currency || 'USD'),
+            shippingFee: parseFloat(item.shippingFee !== undefined ? item.shippingFee : (item.shippingFeeIls || 0)) || 0,
+            shippingCurrency: String(item.shippingCurrency || item.ShippingCurrency || 'USD'),
+            totalCostIls: parseFloat(item.totalCostIls || item.TotalCostIls || 0) || 0
+          }));
+          localStorage.setItem("packages", JSON.stringify(packages));
+        }
+      } catch (err) {
+        packages = JSON.parse(localStorage.getItem("packages") || "[]");
+      }
+      renderPackages();
+    }
+
+    function renderPackages() {
+      const tbody = document.getElementById("packagesTableBody");
+      if (!tbody) return;
+      if (!packages.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No active packages.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = packages.map(pkg => {
+        const isUSD = pkg.currency === 'USD';
+        return `
+          <tr class="hover:bg-slate-50 border-b border-slate-100">
+            <td class="p-3 font-medium text-slate-900">${pkg.itemDescription}</td>
+            <td class="p-3">
+              <span class="font-mono text-slate-700 block">${pkg.trackingNumber}</span>
+              <span class="text-[11px] font-semibold text-indigo-600">${pkg.forwarder}</span>
+            </td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100">${pkg.status}</span></td>
+            <td class="p-3 text-right font-medium">${isUSD ? '$' : '₪'}${pkg.itemCost.toFixed(2)}</td>
+            <td class="p-3 text-right font-medium">${pkg.shippingCurrency === 'USD' ? '$' : '₪'}${pkg.shippingFee.toFixed(2)}</td>
+            <td class="p-3 text-right font-semibold text-slate-900">₪${pkg.totalCostIls.toFixed(2)}</td>
+            <td class="p-3 text-center whitespace-nowrap">
+              <button onclick="startPackageEdit('${pkg.id}')" class="text-indigo-600 px-1 py-1 text-xs"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="deletePackage('${pkg.id}')" class="text-rose-500 px-1 py-1 text-xs"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function handlePackageSubmit(e) {
+      if (e) e.preventDefault();
+      const btn = document.getElementById("pkgSubmitBtn");
+      const desc = document.getElementById("pkgDesc").value.trim();
+      if (!desc) return alert("Enter item description");
+
+      const tracking = document.getElementById("pkgTracking").value.trim();
+      const forwarder = document.getElementById("pkgForwarder").value;
+      const cost = parseFloat(document.getElementById("pkgCost").value) || 0;
+      const currency = document.getElementById("pkgCurrency").value;
+      const shippingFee = parseFloat(document.getElementById("pkgShippingFee").value) || 0;
+      const shippingCurrency = document.getElementById("pkgShippingCurrency").value;
+      const status = document.getElementById("pkgStatus").value;
+      const editId = document.getElementById("editPkgId").value.trim();
+      const isEditing = Boolean(editId);
+
+      const itemIls = cost * (RATES[currency] || 1);
+      const shipIls = shippingFee * (RATES[shippingCurrency] || 1);
+      const totalCostIls = (itemIls + shipIls).toFixed(2);
+      const targetId = isEditing ? editId : ("pkg_" + Date.now());
+
+      const payload = {
+        id: targetId,
+        itemDescription: desc,
+        trackingNumber: tracking,
+        forwarder,
+        status,
+        itemCost: cost,
+        currency,
+        shippingFee,
+        shippingCurrency,
+        totalCostIls: parseFloat(totalCostIls)
+      };
+
+      if (isEditing) {
+        packages = packages.map(x => String(x.id) === String(editId) ? payload : x);
+      } else {
+        packages.unshift(payload);
+      }
+
+      localStorage.setItem("packages", JSON.stringify(packages));
+      renderPackages();
+      cancelPackageEdit();
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>`;
+      }
+
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: isEditing ? "update" : "add", sheet: "Packages", id: editId || undefined, data: payload })
+      });
+    }
+
+    function startPackageEdit(id) {
+      const pkg = packages.find(x => String(x.id) === String(id));
+      if (!pkg) return;
+      document.getElementById("editPkgId").value = pkg.id;
+      document.getElementById("pkgDesc").value = pkg.itemDescription;
+      document.getElementById("pkgTracking").value = pkg.trackingNumber;
+      document.getElementById("pkgForwarder").value = pkg.forwarder;
+      document.getElementById("pkgCost").value = pkg.itemCost;
+      document.getElementById("pkgCurrency").value = pkg.currency;
+      document.getElementById("pkgShippingFee").value = pkg.shippingFee;
+      document.getElementById("pkgShippingCurrency").value = pkg.shippingCurrency;
+      document.getElementById("pkgStatus").value = pkg.status;
+
+      document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-pen text-amber-500"></i> Update Package`;
+      document.getElementById("pkgSubmitText").textContent = "Update Package";
+      document.getElementById("cancelPkgEditBtn").classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelPackageEdit() {
+      document.getElementById("editPkgId").value = "";
+      document.getElementById("pkgDesc").value = "";
+      document.getElementById("pkgTracking").value = "";
+      document.getElementById("pkgCost").value = "";
+      document.getElementById("pkgShippingFee").value = "";
+      document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order`;
+      document.getElementById("pkgSubmitText").textContent = "Save Package";
+      document.getElementById("cancelPkgEditBtn").classList.add("hidden");
+    }
+
+    function deletePackage(id) {
+      if (!confirm("Delete package?")) return;
+      packages = packages.filter(x => String(x.id) !== String(id));
+      localStorage.setItem("packages", JSON.stringify(packages));
+      renderPackages();
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Packages", id: id })
+      });
+    }
+
+    /* ------------------- HELPERS ------------------- */
+    function setSyncStatus(text, color) {
+      const el = document.getElementById("syncStatus");
+      if (!el) return;
+      const dot = el.querySelector("span:first-child");
+      const label = el.querySelector("span:last-child");
+      if (label) label.textContent = text;
+      if (dot) dot.className = `w-2 h-2 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : color === 'amber' ? 'bg-amber-500 animate-pulse' : 'bg-slate-400'}`;
+    }
+
+    function clearLocalStorage() {
+      localStorage.clear();
+      alert("Cache cleared.");
+      location.reload();
+    }
+  </script>
+</body>
+</html>
