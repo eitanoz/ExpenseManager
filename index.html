@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense & Package Manager</title>
   
-  <!-- PWA Meta tags for Android & iOS standalone installation -->
+  <!-- PWA Meta tags configured with minimalist-indigo-icon.png -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#4f46e5" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="icon" type="image/png" href="icon.png" />
-  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="icon" type="image/png" href="minimalist-indigo-icon.png" />
+  <link rel="apple-touch-icon" href="minimalist-indigo-icon.png" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -228,4 +228,78 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-column text-indigo-500"></i> Monthly Spend Overview (₪ ILS)
+          </h3>
+          <div class="h-64 relative">
+            <canvas id="monthlyTrendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-chart-pie text-emerald-500"></i> Spend by Category
+            </h3>
+            <div class="h-56 relative flex justify-center">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-credit-card text-sky-500"></i> Spend by Card / Account
+            </h3>
+            <div class="h-56 relative flex justify-center">
+              <canvas id="cardChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100">
+            <h3 class="text-sm font-semibold text-slate-800">Card Utilization Breakdown</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3">Card Nickname</th>
+                  <th class="p-3 text-center">Transactions</th>
+                  <th class="p-3 text-right">Total Charged</th>
+                  <th class="p-3 text-right">Share of Total</th>
+                </tr>
+              </thead>
+              <tbody id="cardStatsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="4" class="p-4 text-center text-slate-400">No data available.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: PACKAGES -->
+      <section id="view-packages" class="space-y-6 hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="pkgFormHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order
+            </h2>
+            <button type="button" id="cancelPkgEditBtn" onclick="cancelPackageEdit()" class="hidden text-xs text-rose-500 hover:underline">
+              <i class="fa-solid fa-xmark"></i> Cancel Edit
+            </button>
+          </div>
+
+          <form id="packageForm" onsubmit="handlePackageSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <input type="hidden" id="editPkgId" value="" />
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Item Description</label>
+              <input type="text" id="pkgDesc" placeholder="e.g. Mechanical Keyboard" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Tracking / Order Number</label>
+              <input type="text" id="pkgTracking" placeholder="e.g. TBA1234567" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder / Carrier</label>
+              <select id="pkgForwarder" class="w-full text-sm rounded-lg border-slate
