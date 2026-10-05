@@ -490,6 +490,11 @@
     let cardChartInstance = null;
     let deferredPrompt = null;
 
+    // Register Service Worker for Android PWA installability
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(() => console.log('Service Worker Registered')).catch((err) => console.warn('Service Worker registration failed:', err));
+    }
+
     function getScriptUrl() {
       return localStorage.getItem("customScriptUrl") || DEFAULT_SCRIPT_URL;
     }
