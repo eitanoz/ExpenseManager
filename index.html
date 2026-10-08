@@ -778,7 +778,8 @@
       if (!desc) { alert("Please enter description"); return; }
       if (isNaN(rawAmount) || rawAmount <= 0) { alert("Please enter amount"); return; }
 
-      const date = document.getElementById("expDate").value || new Date().toISOString().split('T')[0];
+      const rawDate = document.getElementById("expDate").value || new Date().toLocaleDateString('en-CA');
+      const date = rawDate.includes('T') ? rawDate : `${rawDate}T12:00:00`;
       const currency = document.getElementById("expCurrency").value;
       const category = document.getElementById("expCategory").value;
       const card = document.getElementById("expCard").value;
