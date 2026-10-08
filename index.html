@@ -22,7 +22,7 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
-  <div class="max-w-4xl mx-auto p-4 sm:p-6 pb-20">
+  <div class="max-w-5xl mx-auto p-4 sm:p-6 pb-20">
     <!-- Header -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-6">
       <div>
@@ -39,7 +39,7 @@
         </button>
         <div id="syncStatus" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
           <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>Cloud Synced</span>
+          <span>Ready</span>
         </div>
       </div>
     </header>
@@ -64,7 +64,6 @@
     <main>
       <!-- TAB 1: EXPENSES -->
       <section id="view-expenses" class="space-y-6">
-        <!-- New / Edit Expense Form -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-4">
             <h2 id="formHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
@@ -136,7 +135,7 @@
           </form>
         </div>
 
-        <!-- Monthly Filter & Summary Controls -->
+        <!-- Monthly Filter -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-100 p-3 rounded-xl border border-slate-200">
           <div class="flex items-center gap-2">
             <i class="fa-solid fa-calendar text-slate-500 text-sm"></i>
@@ -166,11 +165,11 @@
             <div class="mt-2 space-y-1">
               <div class="flex justify-between text-xs font-medium text-slate-700">
                 <span>1 USD ($)</span>
-                <span class="font-bold text-slate-900">₪<span id="fxUsdRate">--</span></span>
+                <span class="font-bold text-slate-900">₪<span id="fxUsdRate">3.70</span></span>
               </div>
               <div class="flex justify-between text-xs font-medium text-slate-700">
                 <span>1 EUR (€)</span>
-                <span class="font-bold text-slate-900">₪<span id="fxEurRate">--</span></span>
+                <span class="font-bold text-slate-900">₪<span id="fxEurRate">4.00</span></span>
               </div>
             </div>
           </div>
@@ -371,7 +370,7 @@
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs sm:text-sm">
-            <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                 <tr>
                   <th class="p-3">Date</th>
                   <th class="p-3">Shop</th>
@@ -383,10 +382,10 @@
                   <th class="p-3 text-right">Total Landed (₪)</th>
                   <th class="p-3 text-center">Actions</th>
                 </tr>
-              </thead>             
+              </thead>
               <tbody id="packagesTableBody" class="divide-y divide-slate-100 text-slate-700">
                 <tr>
-                  <td colspan="7" class="p-8 text-center text-slate-400">Loading packages...</td>
+                  <td colspan="9" class="p-8 text-center text-slate-400">Loading packages...</td>
                 </tr>
               </tbody>
             </table>
@@ -533,13 +532,51 @@
       }
     }
 
+    // Helper: Normalize date strings to standard YYYY-MM-DD
+    function parseDateToISO(raw) {
+      if (!raw) return '';
+      let str = String(raw).replace(/^'+/, '').trim();
+      if (str.includes('/')) {
+        const p = str.split('/');
+        if (p.length === 3) {
+          // If format is DD/MM/YYYY
+          if (p[2].length === 4) {
+            return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+          }
+          // If format is YYYY/MM/DD
+          if (p[0].length === 4) {
+            return `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}`;
+          }
+        }
+      }
+      return str.split('T')[0];
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
+      const todayISO = new Date().toISOString().split('T')[0];
       const dateEl = document.getElementById("expDate");
-      if (dateEl) dateEl.valueAsDate = new Date();
+      if (dateEl) dateEl.value = todayISO;
+      const pkgDateEl = document.getElementById("pkgDate");
+      if (pkgDateEl) pkgDateEl.value = todayISO;
       
       const scriptInput = document.getElementById("scriptUrlInput");
       if (scriptInput) scriptInput.value = getScriptUrl();
 
+      // Render cached items immediately so screen is never blank
+      try {
+        expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
+        packages = JSON.parse(localStorage.getItem("packages") || "[]");
+        cards = JSON.parse(localStorage.getItem("cards") || "[]");
+        populateCardDropdown();
+        renderCardsTable();
+        updateMonthFilterOptions();
+        renderExpenses();
+        renderPackages();
+      } catch (e) {
+        console.warn("Local storage cache load error:", e);
+      }
+
+      // Fetch live updates in the background
       fetchAll();
     });
 
@@ -586,13 +623,15 @@
     /* ------------------- CARDS ------------------- */
     async function fetchCards() {
       try {
-        const res = await fetch(`${getScriptUrl()}?sheet=Cards&t=${Date.now()}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(`${getScriptUrl()}?sheet=Cards&t=${Date.now()}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           cards = data;
           localStorage.setItem("cards", JSON.stringify(cards));
-        } else {
-          cards = JSON.parse(localStorage.getItem("cards") || "[]");
         }
       } catch (e) {
         cards = JSON.parse(localStorage.getItem("cards") || "[]");
@@ -675,7 +714,11 @@
     async function fetchExpenses() {
       setSyncStatus("Loading...", "amber");
       try {
-        const res = await fetch(`${getScriptUrl()}?sheet=Expenses&t=${Date.now()}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        const res = await fetch(`${getScriptUrl()}?sheet=Expenses&t=${Date.now()}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         const rawData = await res.json();
         
         if (Array.isArray(rawData)) {
@@ -687,7 +730,7 @@
 
             return {
               id: String(item.id || item.ID || `exp_${idx}`),
-              date: String(item.date || item.Date || '').split('T')[0],
+              date: parseDateToISO(item.date || item.Date),
               description: String(desc),
               amount: isNaN(amount) ? 0 : amount,
               currency: String(currency),
@@ -701,7 +744,7 @@
           setSyncStatus("Cloud Synced", "emerald");
         }
       } catch (err) {
-        console.warn("Sheet fetch error:", err);
+        console.warn("fetchExpenses fallback to cache:", err);
         expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
         setSyncStatus("Cached / Offline", "slate");
       }
@@ -731,6 +774,7 @@
 
     function renderExpenses() {
       const tbody = document.getElementById("expensesTableBody");
+      if (!tbody) return;
       const monthSelect = document.getElementById("monthFilter");
       const selectedMonth = monthSelect ? monthSelect.value : "ALL";
       const badge = document.getElementById("monthSummaryBadge");
@@ -788,10 +832,8 @@
       if (!desc) { alert("Please enter description"); return; }
       if (isNaN(rawAmount) || rawAmount <= 0) { alert("Please enter amount"); return; }
 
-      // Prepending "'" tells Google Sheets to store it strictly as text
       const rawDate = document.getElementById("expDate").value || new Date().toISOString().split('T')[0];
-      const date = "'" + rawDate.split('T')[0];
-            
+      const date = parseDateToISO(rawDate);
       const currency = document.getElementById("expCurrency").value;
       const category = document.getElementById("expCategory").value;
       const card = document.getElementById("expCard").value;
@@ -806,7 +848,6 @@
       const payload = {
         id: targetId,
         date: date,
-        shop: shop,
         description: desc,
         amount: rawAmount,
         currency: currency,
@@ -852,7 +893,7 @@
       const exp = expenses.find(x => String(x.id) === String(id));
       if (!exp) return;
       document.getElementById("editExpId").value = exp.id;
-      document.getElementById("expDate").value = exp.date;
+      document.getElementById("expDate").value = parseDateToISO(exp.date);
       document.getElementById("expDesc").value = exp.description;
       document.getElementById("expAmount").value = exp.amount;
       document.getElementById("expCurrency").value = exp.currency;
@@ -871,7 +912,7 @@
       document.getElementById("expDesc").value = "";
       document.getElementById("expAmount").value = "";
       const d = document.getElementById("expDate");
-      if (d) d.valueAsDate = new Date();
+      if (d) d.value = new Date().toISOString().split('T')[0];
       document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense`;
       document.getElementById("expSubmitText").textContent = "Save Expense";
       document.getElementById("cancelEditBtn").classList.add("hidden");
@@ -1007,15 +1048,18 @@
     }
 
     /* ------------------- PACKAGES ------------------- */
-    /* ------------------- PACKAGES ------------------- */
     async function fetchPackages() {
       try {
-        const res = await fetch(`${getScriptUrl()}?sheet=Packages&t=${Date.now()}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(`${getScriptUrl()}?sheet=Packages&t=${Date.now()}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         const rawData = await res.json();
         if (Array.isArray(rawData)) {
           packages = rawData.map((item, idx) => ({
             id: String(item.id || item.ID || `pkg_${idx}`),
-            date: String(item.date || item.Date || item.purchaseDate || item.PurchaseDate || '').replace(/^'+/, '').split('T')[0],
+            date: parseDateToISO(item.date || item.Date || item.purchaseDate || item.PurchaseDate),
             shop: String(item.shop || item.Shop || item.store || item.Store || '-'),
             itemDescription: String(item.itemDescription || item.ItemDescription || item.item || item.description || 'Package'),
             trackingNumber: String(item.trackingNumber || item.TrackingNumber || item.tracking || ''),
@@ -1030,6 +1074,7 @@
           localStorage.setItem("packages", JSON.stringify(packages));
         }
       } catch (err) {
+        console.warn("fetchPackages fallback to cache:", err);
         packages = JSON.parse(localStorage.getItem("packages") || "[]");
       }
       renderPackages();
@@ -1072,12 +1117,8 @@
       const desc = document.getElementById("pkgDesc").value.trim();
       if (!desc) return alert("Enter item description");
 
-      // 1. Get raw value from the HTML date picker (always YYYY-MM-DD)
-      const rawDate = document.getElementById("pkgDate").value || new Date().toISOString().split('T')[0];      
-      // 2. Prepend single quote so Sheets treats it as literal text and disables Day/Month parsing
-      const sheetLiteralDate = "'" + rawDate;
-      const displayDate = rawDate;
-      
+      const rawDate = document.getElementById("pkgDate").value || new Date().toISOString().split('T')[0];
+      const date = parseDateToISO(rawDate);
       const shop = document.getElementById("pkgShop").value.trim();
       const tracking = document.getElementById("pkgTracking").value.trim();
       const forwarder = document.getElementById("pkgForwarder").value;
@@ -1093,16 +1134,11 @@
       const shipIls = shippingFee * (RATES[shippingCurrency] || 1);
       const totalCostIls = (itemIls + shipIls).toFixed(2);
       const targetId = isEditing ? editId : ("pkg_" + Date.now());
-      
-      // 1. Get clean YYYY-MM-DD from the HTML date picker
-      const rawDate = document.getElementById("pkgDate").value || new Date().toISOString().split('T')[0];
-      const cleanDate = rawDate.replace(/^'+/, '').trim(); // Strip any accidental apostrophes
 
-      // 2. Build the payload with the clean date
       const payload = {
         id: targetId,
-        date: cleanDate,
-        purchaseDate: cleanDate,
+        date: date,
+        purchaseDate: date,
         shop: shop,
         itemDescription: desc,
         trackingNumber: tracking,
@@ -1114,9 +1150,6 @@
         shippingCurrency: shippingCurrency,
         totalCostIls: parseFloat(totalCostIls)
       };
-
-      // In local state, keep clean YYYY-MM-DD
-      const localRecord = { ...payload, date: displayDate };
 
       if (isEditing) {
         packages = packages.map(x => String(x.id) === String(editId) ? payload : x);
@@ -1144,32 +1177,7 @@
       const pkg = packages.find(x => String(x.id) === String(id));
       if (!pkg) return;
       document.getElementById("editPkgId").value = pkg.id;
-      
-      let cleanDate = "";
-      // Clean off any quotes before feeding the HTML5 date input
-      const cleanDate = String(pkg.date || '').replace(/^'+/, '').split('T')[0];
-      document.getElementById("pkgDate").value = cleanDate || new Date().toISOString().split("T")[0];
-      
-      if (pkg.date) {
-        // Remove any single quote prefix and whitespace
-        let raw = String(pkg.date).replace(/^'+/, '').trim();
-        
-        if (raw.includes("/")) {
-          const parts = raw.split("/");
-          if (parts.length === 3) {
-            // Check if year is first or last
-            if (parts[0].length === 4) {
-              cleanDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-            } else {
-              cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            }
-          }
-        } else {
-          cleanDate = raw.split("T")[0];
-        }
-      }
-      document.getElementById("pkgDate").value = cleanDate || new Date().toISOString().split("T")[0];
-      
+      document.getElementById("pkgDate").value = parseDateToISO(pkg.date);
       document.getElementById("pkgShop").value = pkg.shop === '-' ? '' : (pkg.shop || '');
       document.getElementById("pkgDesc").value = pkg.itemDescription;
       document.getElementById("pkgTracking").value = pkg.trackingNumber;
@@ -1189,7 +1197,7 @@
     function cancelPackageEdit() {
       document.getElementById("editPkgId").value = "";
       const d = document.getElementById("pkgDate");
-      if (d) d.valueAsDate = new Date();
+      if (d) d.value = new Date().toISOString().split('T')[0];
       document.getElementById("pkgShop").value = "";
       document.getElementById("pkgDesc").value = "";
       document.getElementById("pkgTracking").value = "";
