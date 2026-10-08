@@ -293,6 +293,14 @@
           <form id="packageForm" onsubmit="handlePackageSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <input type="hidden" id="editPkgId" value="" />
             <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Purchase Date</label>
+              <input type="date" id="pkgDate" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Shop / Store</label>
+              <input type="text" id="pkgShop" placeholder="e.g. Amazon, AliExpress, eBay" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Item Description</label>
               <input type="text" id="pkgDesc" placeholder="e.g. Mechanical Keyboard" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
             </div>
@@ -363,8 +371,10 @@
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs sm:text-sm">
-              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+            <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                 <tr>
+                  <th class="p-3">Date</th>
+                  <th class="p-3">Shop</th>
                   <th class="p-3">Item</th>
                   <th class="p-3">Carrier / Tracking</th>
                   <th class="p-3">Status</th>
@@ -373,7 +383,7 @@
                   <th class="p-3 text-right">Total Landed (₪)</th>
                   <th class="p-3 text-center">Actions</th>
                 </tr>
-              </thead>
+              </thead>             
               <tbody id="packagesTableBody" class="divide-y divide-slate-100 text-slate-700">
                 <tr>
                   <td colspan="7" class="p-8 text-center text-slate-400">Loading packages...</td>
@@ -996,6 +1006,7 @@
     }
 
     /* ------------------- PACKAGES ------------------- */
+    /* ------------------- PACKAGES ------------------- */
     async function fetchPackages() {
       try {
         const res = await fetch(`${getScriptUrl()}?sheet=Packages&t=${Date.now()}`);
@@ -1003,6 +1014,8 @@
         if (Array.isArray(rawData)) {
           packages = rawData.map((item, idx) => ({
             id: String(item.id || item.ID || `pkg_${idx}`),
+            date: String(item.date || item.Date || item.purchaseDate || item.PurchaseDate || '').split('T')[0],
+            shop: String(item.shop || item.Shop || item.store || item.Store || '-'),
             itemDescription: String(item.itemDescription || item.ItemDescription || item.item || item.description || 'Package'),
             trackingNumber: String(item.trackingNumber || item.TrackingNumber || item.tracking || ''),
             forwarder: String(item.forwarder || item.Forwarder || 'RedBox'),
@@ -1025,13 +1038,15 @@
       const tbody = document.getElementById("packagesTableBody");
       if (!tbody) return;
       if (!packages.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No active packages.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400">No active packages.</td></tr>`;
         return;
       }
       tbody.innerHTML = packages.map(pkg => {
         const isUSD = pkg.currency === 'USD';
         return `
           <tr class="hover:bg-slate-50 border-b border-slate-100">
+            <td class="p-3 text-slate-500 whitespace-nowrap">${pkg.date || '-'}</td>
+            <td class="p-3 font-medium text-slate-700 whitespace-nowrap">${pkg.shop || '-'}</td>
             <td class="p-3 font-medium text-slate-900">${pkg.itemDescription}</td>
             <td class="p-3">
               <span class="font-mono text-slate-700 block">${pkg.trackingNumber}</span>
@@ -1056,6 +1071,8 @@
       const desc = document.getElementById("pkgDesc").value.trim();
       if (!desc) return alert("Enter item description");
 
+      const date = document.getElementById("pkgDate").value || new Date().toISOString().split('T')[0];
+      const shop = document.getElementById("pkgShop").value.trim();
       const tracking = document.getElementById("pkgTracking").value.trim();
       const forwarder = document.getElementById("pkgForwarder").value;
       const cost = parseFloat(document.getElementById("pkgCost").value) || 0;
@@ -1073,6 +1090,8 @@
 
       const payload = {
         id: targetId,
+        date: date,
+        shop: shop,
         itemDescription: desc,
         trackingNumber: tracking,
         forwarder,
@@ -1110,6 +1129,8 @@
       const pkg = packages.find(x => String(x.id) === String(id));
       if (!pkg) return;
       document.getElementById("editPkgId").value = pkg.id;
+      document.getElementById("pkgDate").value = pkg.date || '';
+      document.getElementById("pkgShop").value = pkg.shop === '-' ? '' : (pkg.shop || '');
       document.getElementById("pkgDesc").value = pkg.itemDescription;
       document.getElementById("pkgTracking").value = pkg.trackingNumber;
       document.getElementById("pkgForwarder").value = pkg.forwarder;
@@ -1127,6 +1148,9 @@
 
     function cancelPackageEdit() {
       document.getElementById("editPkgId").value = "";
+      const d = document.getElementById("pkgDate");
+      if (d) d.valueAsDate = new Date();
+      document.getElementById("pkgShop").value = "";
       document.getElementById("pkgDesc").value = "";
       document.getElementById("pkgTracking").value = "";
       document.getElementById("pkgCost").value = "";
