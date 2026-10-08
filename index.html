@@ -1072,7 +1072,12 @@
       const desc = document.getElementById("pkgDesc").value.trim();
       if (!desc) return alert("Enter item description");
 
-      const date = document.getElementById("pkgDate").value || new Date().toISOString().split('T')[0];
+      // 1. Get raw value from the HTML date picker (always YYYY-MM-DD)
+      const rawDate = document.getElementById("pkgDate").value || new Date().toISOString().split('T')[0];      
+      // 2. Prepend single quote so Sheets treats it as literal text and disables Day/Month parsing
+      const sheetLiteralDate = "'" + rawDate;
+      const displayDate = rawDate;
+      
       const shop = document.getElementById("pkgShop").value.trim();
       const tracking = document.getElementById("pkgTracking").value.trim();
       const forwarder = document.getElementById("pkgForwarder").value;
@@ -1091,18 +1096,22 @@
 
       const payload = {
         id: targetId,
-        date: date,
+        date: sheetLiteralDate,
+        purchaseDate: sheetLiteralDate,
         shop: shop,
         itemDescription: desc,
         trackingNumber: tracking,
-        forwarder,
-        status,
+        forwarder: forwarder,
+        status: status,
         itemCost: cost,
-        currency,
-        shippingFee,
-        shippingCurrency,
+        currency: currency,
+        shippingFee: shippingFee,
+        shippingCurrency: shippingCurrency,
         totalCostIls: parseFloat(totalCostIls)
       };
+
+      // In local state, keep clean YYYY-MM-DD
+      const localRecord = { ...payload, date: displayDate };
 
       if (isEditing) {
         packages = packages.map(x => String(x.id) === String(editId) ? payload : x);
@@ -1130,7 +1139,28 @@
       const pkg = packages.find(x => String(x.id) === String(id));
       if (!pkg) return;
       document.getElementById("editPkgId").value = pkg.id;
-      document.getElementById("pkgDate").value = pkg.date || '';
+      
+      let cleanDate = "";
+      if (pkg.date) {
+        // Remove any single quote prefix and whitespace
+        let raw = String(pkg.date).replace(/^'+/, '').trim();
+        
+        if (raw.includes("/")) {
+          const parts = raw.split("/");
+          if (parts.length === 3) {
+            // Check if year is first or last
+            if (parts[0].length === 4) {
+              cleanDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+            } else {
+              cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+          }
+        } else {
+          cleanDate = raw.split("T")[0];
+        }
+      }
+      document.getElementById("pkgDate").value = cleanDate || new Date().toISOString().split("T")[0];
+      
       document.getElementById("pkgShop").value = pkg.shop === '-' ? '' : (pkg.shop || '');
       document.getElementById("pkgDesc").value = pkg.itemDescription;
       document.getElementById("pkgTracking").value = pkg.trackingNumber;
