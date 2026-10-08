@@ -1015,7 +1015,7 @@
         if (Array.isArray(rawData)) {
           packages = rawData.map((item, idx) => ({
             id: String(item.id || item.ID || `pkg_${idx}`),
-            date: String(item.date || item.Date || item.purchaseDate || item.PurchaseDate || '').split('T')[0],
+            date: String(item.date || item.Date || item.purchaseDate || item.PurchaseDate || '').replace(/^'+/, '').split('T')[0],
             shop: String(item.shop || item.Shop || item.store || item.Store || '-'),
             itemDescription: String(item.itemDescription || item.ItemDescription || item.item || item.description || 'Package'),
             trackingNumber: String(item.trackingNumber || item.TrackingNumber || item.tracking || ''),
@@ -1093,11 +1093,16 @@
       const shipIls = shippingFee * (RATES[shippingCurrency] || 1);
       const totalCostIls = (itemIls + shipIls).toFixed(2);
       const targetId = isEditing ? editId : ("pkg_" + Date.now());
+      
+      // 1. Get clean YYYY-MM-DD from the HTML date picker
+      const rawDate = document.getElementById("pkgDate").value || new Date().toISOString().split('T')[0];
+      const cleanDate = rawDate.replace(/^'+/, '').trim(); // Strip any accidental apostrophes
 
+      // 2. Build the payload with the clean date
       const payload = {
         id: targetId,
-        date: sheetLiteralDate,
-        purchaseDate: sheetLiteralDate,
+        date: cleanDate,
+        purchaseDate: cleanDate,
         shop: shop,
         itemDescription: desc,
         trackingNumber: tracking,
@@ -1141,6 +1146,10 @@
       document.getElementById("editPkgId").value = pkg.id;
       
       let cleanDate = "";
+      // Clean off any quotes before feeding the HTML5 date input
+      const cleanDate = String(pkg.date || '').replace(/^'+/, '').split('T')[0];
+      document.getElementById("pkgDate").value = cleanDate || new Date().toISOString().split("T")[0];
+      
       if (pkg.date) {
         // Remove any single quote prefix and whitespace
         let raw = String(pkg.date).replace(/^'+/, '').trim();
