@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense & Package Manager</title>
   
-  <!-- PWA Meta tags configured with minimalist-indigo-icon.png -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#4f46e5" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -197,9 +196,7 @@
                 </tr>
               </thead>
               <tbody id="expensesTableBody" class="divide-y divide-slate-100 text-slate-700">
-                <tr>
-                  <td colspan="7" class="p-8 text-center text-slate-400">Loading expenses...</td>
-                </tr>
+                <tr><td colspan="7" class="p-8 text-center text-slate-400">Loading expenses...</td></tr>
               </tbody>
             </table>
           </div>
@@ -322,6 +319,17 @@
               </select>
             </div>
             <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Current Status</label>
+              <select id="pkgStatus" onchange="handleStatusChange(this.value)" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+                <option value="Ordered">Ordered / Awaiting Warehouse</option>
+                <option value="Received at US Hub">Received at Forwarder Hub</option>
+                <option value="In Transit to IL">In Transit to Israel</option>
+                <option value="Customs Clearance">Customs Clearance</option>
+                <option value="Out for Delivery">Out for Delivery</option>
+                <option value="Delivered">Delivered</option>
+              </select>
+            </div>
+            <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Item Purchase Cost</label>
               <div class="flex gap-2">
                 <input type="number" step="0.01" id="pkgCost" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
@@ -342,16 +350,14 @@
                 </select>
               </div>
             </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">Current Status</label>
-              <select id="pkgStatus" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
-                <option value="Ordered">Ordered / Awaiting Warehouse</option>
-                <option value="Received at US Hub">Received at Forwarder Hub</option>
-                <option value="In Transit to IL">In Transit to Israel</option>
-                <option value="Customs Clearance">Customs Clearance</option>
-                <option value="Out for Delivery">Out for Delivery</option>
-                <option value="Delivered">Delivered</option>
-              </select>
+            <div class="flex items-center gap-3 pt-5">
+              <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
+                <input type="checkbox" id="pkgIsReceived" onchange="toggleReceivedCheck(this.checked)" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+                <span class="ml-2 font-semibold text-emerald-700">Package Received?</span>
+              </label>
+              <div id="receivedDateBox" class="hidden flex-1">
+                <input type="date" id="pkgReceivedDate" class="w-full text-xs rounded-lg border-slate-300 border p-1.5 focus:ring-1 focus:ring-indigo-500" />
+              </div>
             </div>
             <div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2">
               <button type="submit" id="pkgSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
@@ -372,11 +378,12 @@
             <table class="w-full text-left text-xs sm:text-sm">
               <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                 <tr>
-                  <th class="p-3">Date</th>
+                  <th class="p-3 text-center">Recv</th>
+                  <th class="p-3">Order Date</th>
                   <th class="p-3">Shop</th>
                   <th class="p-3">Item</th>
                   <th class="p-3">Carrier / Tracking</th>
-                  <th class="p-3">Status</th>
+                  <th class="p-3">Status / Recv Date</th>
                   <th class="p-3 text-right">Item Cost</th>
                   <th class="p-3 text-right">Shipping Fee</th>
                   <th class="p-3 text-right">Total Landed (₪)</th>
@@ -384,9 +391,7 @@
                 </tr>
               </thead>
               <tbody id="packagesTableBody" class="divide-y divide-slate-100 text-slate-700">
-                <tr>
-                  <td colspan="9" class="p-8 text-center text-slate-400">Loading packages...</td>
-                </tr>
+                <tr><td colspan="10" class="p-8 text-center text-slate-400">Loading packages...</td></tr>
               </tbody>
             </table>
           </div>
@@ -439,7 +444,7 @@
                 </tr>
               </thead>
               <tbody id="cardsTableBody" class="divide-y divide-slate-100 text-slate-700">
-                <tr><td colspan="4" class="p-4 text-center text-slate-400">Loading cards...</td></tr>
+                <tr><td colspan="4" class="p-4 text-center text-slate-400">No cards registered yet.</td></tr>
               </tbody>
             </table>
           </div>
@@ -532,21 +537,14 @@
       }
     }
 
-    // Helper: Normalize date strings to standard YYYY-MM-DD
     function parseDateToISO(raw) {
       if (!raw) return '';
       let str = String(raw).replace(/^'+/, '').trim();
       if (str.includes('/')) {
         const p = str.split('/');
         if (p.length === 3) {
-          // If format is DD/MM/YYYY
-          if (p[2].length === 4) {
-            return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
-          }
-          // If format is YYYY/MM/DD
-          if (p[0].length === 4) {
-            return `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}`;
-          }
+          if (p[2].length === 4) return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+          if (p[0].length === 4) return `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}`;
         }
       }
       return str.split('T')[0];
@@ -562,7 +560,6 @@
       const scriptInput = document.getElementById("scriptUrlInput");
       if (scriptInput) scriptInput.value = getScriptUrl();
 
-      // Render cached items immediately so screen is never blank
       try {
         expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
         packages = JSON.parse(localStorage.getItem("packages") || "[]");
@@ -576,7 +573,6 @@
         console.warn("Local storage cache load error:", e);
       }
 
-      // Fetch live updates in the background
       fetchAll();
     });
 
@@ -623,11 +619,7 @@
     /* ------------------- CARDS ------------------- */
     async function fetchCards() {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        const res = await fetch(`${getScriptUrl()}?sheet=Cards&t=${Date.now()}`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        
+        const res = await fetch(`${getScriptUrl()}?sheet=Cards&t=${Date.now()}`);
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           cards = data;
@@ -714,11 +706,7 @@
     async function fetchExpenses() {
       setSyncStatus("Loading...", "amber");
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-        const res = await fetch(`${getScriptUrl()}?sheet=Expenses&t=${Date.now()}`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
+        const res = await fetch(`${getScriptUrl()}?sheet=Expenses&t=${Date.now()}`);
         const rawData = await res.json();
         
         if (Array.isArray(rawData)) {
@@ -744,7 +732,6 @@
           setSyncStatus("Cloud Synced", "emerald");
         }
       } catch (err) {
-        console.warn("fetchExpenses fallback to cache:", err);
         expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
         setSyncStatus("Cached / Offline", "slate");
       }
@@ -848,13 +835,21 @@
       const payload = {
         id: targetId,
         date: date,
+        Date: date,
         description: desc,
+        Description: desc,
         amount: rawAmount,
+        Amount: rawAmount,
         currency: currency,
+        Currency: currency,
         ilsAmount: parseFloat(ilsAmount),
+        IlsAmount: parseFloat(ilsAmount),
         category: category,
+        Category: category,
         card: card,
+        Card: card,
         paymentMethod: method,
+        PaymentMethod: method,
         isRecurring: "No"
       };
 
@@ -1047,14 +1042,81 @@
       }
     }
 
-    /* ------------------- PACKAGES ------------------- */
+    /* ------------------- PACKAGES & EXPENSE AUTO-SYNC ------------------- */
+    function toggleReceivedCheck(checked) {
+      const box = document.getElementById("receivedDateBox");
+      const dateEl = document.getElementById("pkgReceivedDate");
+      const statusEl = document.getElementById("pkgStatus");
+      if (checked) {
+        box.classList.remove("hidden");
+        if (!dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+        if (statusEl) statusEl.value = "Delivered";
+      } else {
+        box.classList.add("hidden");
+        dateEl.value = "";
+      }
+    }
+
+    function handleStatusChange(val) {
+      const chk = document.getElementById("pkgIsReceived");
+      if (val === "Delivered") {
+        chk.checked = true;
+        toggleReceivedCheck(true);
+      } else if (chk.checked) {
+        chk.checked = false;
+        toggleReceivedCheck(false);
+      }
+    }
+
+    // Sync an individual package cost line (item or shipping) into Expenses without creating duplicates
+    function syncLinkedExpense(targetId, date, desc, amount, currency) {
+      if (!amount || amount <= 0) return null;
+      const rate = RATES[currency] || 1;
+      const ilsAmount = (amount * rate).toFixed(2);
+      const isExisting = expenses.some(x => String(x.id) === String(targetId));
+      const expId = targetId || ("exp_pkg_" + Date.now() + "_" + Math.floor(Math.random() * 1000));
+
+      const payload = {
+        id: expId,
+        date: date,
+        description: desc,
+        amount: amount,
+        currency: currency,
+        ilsAmount: parseFloat(ilsAmount),
+        category: "Online Shopping",
+        card: "Default Card",
+        paymentMethod: "Credit Card",
+        isRecurring: "No"
+      };
+
+      if (isExisting) {
+        expenses = expenses.map(x => String(x.id) === String(expId) ? payload : x);
+      } else {
+        expenses.unshift(payload);
+      }
+
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+      updateMonthFilterOptions();
+      renderExpenses();
+      renderAnalytics();
+
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          action: isExisting ? "update" : "add",
+          sheet: "Expenses",
+          id: isExisting ? expId : undefined,
+          data: payload
+        })
+      });
+
+      return expId;
+    }
+
     async function fetchPackages() {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        const res = await fetch(`${getScriptUrl()}?sheet=Packages&t=${Date.now()}`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
+        const res = await fetch(`${getScriptUrl()}?sheet=Packages&t=${Date.now()}`);
         const rawData = await res.json();
         if (Array.isArray(rawData)) {
           packages = rawData.map((item, idx) => ({
@@ -1065,16 +1127,19 @@
             trackingNumber: String(item.trackingNumber || item.TrackingNumber || item.tracking || ''),
             forwarder: String(item.forwarder || item.Forwarder || 'RedBox'),
             status: String(item.status || item.Status || 'Ordered'),
+            isReceived: String(item.isReceived || item.received || '').toLowerCase() === 'true' || item.status === 'Delivered',
+            receivedDate: parseDateToISO(item.receivedDate || item.ReceivedDate || ''),
             itemCost: parseFloat(item.itemCost || item.ItemCost || 0) || 0,
             currency: String(item.currency || item.Currency || 'USD'),
             shippingFee: parseFloat(item.shippingFee !== undefined ? item.shippingFee : (item.shippingFeeIls || 0)) || 0,
             shippingCurrency: String(item.shippingCurrency || item.ShippingCurrency || 'USD'),
-            totalCostIls: parseFloat(item.totalCostIls || item.TotalCostIls || 0) || 0
+            totalCostIls: parseFloat(item.totalCostIls || item.TotalCostIls || 0) || 0,
+            itemExpId: item.itemExpId || '',
+            shippingExpId: item.shippingExpId || ''
           }));
           localStorage.setItem("packages", JSON.stringify(packages));
         }
       } catch (err) {
-        console.warn("fetchPackages fallback to cache:", err);
         packages = JSON.parse(localStorage.getItem("packages") || "[]");
       }
       renderPackages();
@@ -1084,13 +1149,16 @@
       const tbody = document.getElementById("packagesTableBody");
       if (!tbody) return;
       if (!packages.length) {
-        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400">No active packages.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-400">No active packages.</td></tr>`;
         return;
       }
       tbody.innerHTML = packages.map(pkg => {
         const isUSD = pkg.currency === 'USD';
         return `
-          <tr class="hover:bg-slate-50 border-b border-slate-100">
+          <tr class="hover:bg-slate-50 border-b border-slate-100 ${pkg.isReceived ? 'bg-emerald-50/20' : ''}">
+            <td class="p-3 text-center">
+              <input type="checkbox" ${pkg.isReceived ? 'checked' : ''} onchange="quickToggleReceived('${pkg.id}', this.checked)" class="w-4 h-4 text-emerald-600 rounded cursor-pointer border-slate-300 focus:ring-emerald-500" />
+            </td>
             <td class="p-3 text-slate-500 whitespace-nowrap">${pkg.date || '-'}</td>
             <td class="p-3 font-medium text-slate-700 whitespace-nowrap">${pkg.shop || '-'}</td>
             <td class="p-3 font-medium text-slate-900">${pkg.itemDescription}</td>
@@ -1098,7 +1166,12 @@
               <span class="font-mono text-slate-700 block">${pkg.trackingNumber}</span>
               <span class="text-[11px] font-semibold text-indigo-600">${pkg.forwarder}</span>
             </td>
-            <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100">${pkg.status}</span></td>
+            <td class="p-3">
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium ${pkg.isReceived ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100'}">
+                ${pkg.status}
+              </span>
+              ${pkg.receivedDate ? `<span class="block text-[11px] text-slate-500 mt-0.5 font-mono">Recv: ${pkg.receivedDate}</span>` : ''}
+            </td>
             <td class="p-3 text-right font-medium">${isUSD ? '$' : '₪'}${pkg.itemCost.toFixed(2)}</td>
             <td class="p-3 text-right font-medium">${pkg.shippingCurrency === 'USD' ? '$' : '₪'}${pkg.shippingFee.toFixed(2)}</td>
             <td class="p-3 text-right font-semibold text-slate-900">₪${pkg.totalCostIls.toFixed(2)}</td>
@@ -1109,6 +1182,23 @@
           </tr>
         `;
       }).join('');
+    }
+
+    function quickToggleReceived(id, isReceived) {
+      const pkg = packages.find(x => String(x.id) === String(id));
+      if (!pkg) return;
+      pkg.isReceived = isReceived;
+      pkg.status = isReceived ? "Delivered" : "In Transit to IL";
+      pkg.receivedDate = isReceived ? new Date().toISOString().split('T')[0] : "";
+      
+      localStorage.setItem("packages", JSON.stringify(packages));
+      renderPackages();
+
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "update", sheet: "Packages", id: pkg.id, data: pkg })
+      });
     }
 
     function handlePackageSubmit(e) {
@@ -1126,14 +1216,34 @@
       const currency = document.getElementById("pkgCurrency").value;
       const shippingFee = parseFloat(document.getElementById("pkgShippingFee").value) || 0;
       const shippingCurrency = document.getElementById("pkgShippingCurrency").value;
-      const status = document.getElementById("pkgStatus").value;
+      let status = document.getElementById("pkgStatus").value;
+      const isReceived = document.getElementById("pkgIsReceived").checked;
+      const receivedDate = isReceived ? (document.getElementById("pkgReceivedDate").value || new Date().toISOString().split('T')[0]) : "";
+
+      if (isReceived) status = "Delivered";
+
       const editId = document.getElementById("editPkgId").value.trim();
       const isEditing = Boolean(editId);
+      const existingPkg = isEditing ? packages.find(x => String(x.id) === String(editId)) : null;
 
       const itemIls = cost * (RATES[currency] || 1);
       const shipIls = shippingFee * (RATES[shippingCurrency] || 1);
       const totalCostIls = (itemIls + shipIls).toFixed(2);
       const targetId = isEditing ? editId : ("pkg_" + Date.now());
+
+      // 1. Sync Item Cost as Expense
+      let itemExpId = existingPkg ? existingPkg.itemExpId : '';
+      if (cost > 0) {
+        const itemDesc = shop ? `[${shop}] ${desc}` : desc;
+        itemExpId = syncLinkedExpense(itemExpId, date, itemDesc, cost, currency);
+      }
+
+      // 2. Sync Shipping Fee as Expense
+      let shippingExpId = existingPkg ? existingPkg.shippingExpId : '';
+      if (shippingFee > 0) {
+        const shipDesc = `Shipping: ${desc} (${forwarder})`;
+        shippingExpId = syncLinkedExpense(shippingExpId, date, shipDesc, shippingFee, shippingCurrency);
+      }
 
       const payload = {
         id: targetId,
@@ -1144,11 +1254,15 @@
         trackingNumber: tracking,
         forwarder: forwarder,
         status: status,
+        isReceived: isReceived,
+        receivedDate: receivedDate,
         itemCost: cost,
         currency: currency,
         shippingFee: shippingFee,
         shippingCurrency: shippingCurrency,
-        totalCostIls: parseFloat(totalCostIls)
+        totalCostIls: parseFloat(totalCostIls),
+        itemExpId: itemExpId || '',
+        shippingExpId: shippingExpId || ''
       };
 
       if (isEditing) {
@@ -1166,11 +1280,13 @@
         btn.innerHTML = `<i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>`;
       }
 
+      setSyncStatus("Syncing...", "amber");
       fetch(getScriptUrl(), {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify({ action: isEditing ? "update" : "add", sheet: "Packages", id: editId || undefined, data: payload })
-      });
+      }).then(() => setSyncStatus("Cloud Synced", "emerald"))
+        .catch(() => setSyncStatus("Saved locally", "amber"));
     }
 
     function startPackageEdit(id) {
@@ -1188,6 +1304,13 @@
       document.getElementById("pkgShippingCurrency").value = pkg.shippingCurrency;
       document.getElementById("pkgStatus").value = pkg.status;
 
+      const chk = document.getElementById("pkgIsReceived");
+      chk.checked = Boolean(pkg.isReceived);
+      toggleReceivedCheck(chk.checked);
+      if (pkg.receivedDate) {
+        document.getElementById("pkgReceivedDate").value = parseDateToISO(pkg.receivedDate);
+      }
+
       document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-pen text-amber-500"></i> Update Package`;
       document.getElementById("pkgSubmitText").textContent = "Update Package";
       document.getElementById("cancelPkgEditBtn").classList.remove("hidden");
@@ -1203,6 +1326,11 @@
       document.getElementById("pkgTracking").value = "";
       document.getElementById("pkgCost").value = "";
       document.getElementById("pkgShippingFee").value = "";
+      const chk = document.getElementById("pkgIsReceived");
+      if (chk) {
+        chk.checked = false;
+        toggleReceivedCheck(false);
+      }
       document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order`;
       document.getElementById("pkgSubmitText").textContent = "Save Package";
       document.getElementById("cancelPkgEditBtn").classList.add("hidden");
