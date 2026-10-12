@@ -96,7 +96,7 @@
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Category</label>
-              <select id="expCategory" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+              <select id="expCategory" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
                 <option value="Education">Education</option>
                 <option value="Health">Health</option>
                 <option value="Shopping">Shopping</option>
@@ -500,7 +500,15 @@
   </div>
 
   <script>
-    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
+    // ==========================================
+    // LINE 372: PASTE YOUR SCRIPT EXEC URL HERE:
+    // ==========================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
+
+    function getScriptUrl() {
+      return localStorage.getItem("customScriptUrl") || SCRIPT_URL;
+    }
+
     const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
 
     let expenses = [];
@@ -510,10 +518,6 @@
     let categoryChartInstance = null;
     let cardChartInstance = null;
     let deferredPrompt = null;
-
-    function getScriptUrl() {
-      return localStorage.getItem("customScriptUrl") || DEFAULT_SCRIPT_URL;
-    }
 
     function saveCustomScriptUrl() {
       const input = document.getElementById("scriptUrlInput").value.trim();
@@ -525,7 +529,7 @@
 
     function resetDefaultScriptUrl() {
       localStorage.removeItem("customScriptUrl");
-      document.getElementById("scriptUrlInput").value = DEFAULT_SCRIPT_URL;
+      document.getElementById("scriptUrlInput").value = SCRIPT_URL;
       alert("Reset to default backend.");
       fetchAll();
     }
@@ -559,6 +563,10 @@
         }
       }
       return str.split('T')[0];
+    }
+
+    function sortExpensesDescending() {
+      expenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -635,14 +643,6 @@
       } catch (err) {
         console.error("Tab switch failed:", err);
       }
-    }
-
-    function sortExpensesDescending() {
-      expenses.sort((a, b) => {
-        const da = a.date || '';
-        const db = b.date || '';
-        return db.localeCompare(da);
-      });
     }
 
     /* ------------------- CARDS ------------------- */
@@ -840,7 +840,7 @@
         const sym = item.currency === 'USD' ? '$' : item.currency === 'EUR' ? '€' : '₪';
 
         return `
-          <tr class="hover:bg-slate-50 border-b border-slate-100 ${item.isRecurring ? 'bg-indigo-50/20' : ''}">
+          <tr class="hover:bg-slate-50 border-b border-slate-100 ${item.isRecurring ? 'bg-indigo-50/30' : ''}">
             <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-xs">${item.date || '-'}</td>
             <td class="p-3 font-medium text-slate-900">
               <div class="flex items-center gap-1.5 flex-wrap">
