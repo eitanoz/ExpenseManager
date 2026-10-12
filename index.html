@@ -97,15 +97,16 @@
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Category</label>
               <select id="expCategory" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
-                <option value="General">General</option>
+                <option value="Education">Education</option>
+                <option value="Health">Health</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Vacation">Vacation</option>
                 <option value="Groceries">Groceries</option>
                 <option value="Dining Out">Dining Out</option>
                 <option value="Utilities">Utilities & Bills</option>
                 <option value="Cars">Cars</option>
                 <option value="Bikes">Bikes</option>
-                <option value="Online Shopping">Online Shopping</option>
-                <option value="Subscriptions">Subscriptions</option>
-                <option value="Travel">Travel & Transport</option>
+                <option value="General">General</option>
               </select>
             </div>
             <div>
@@ -113,8 +114,8 @@
                 <label class="block text-xs font-medium text-slate-600">Card / Account Nickname</label>
                 <button type="button" onclick="switchTab('settings')" class="text-[11px] text-indigo-600 hover:underline">+ Manage</button>
               </div>
-              <select id="expCard" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
-                <option value="Default Card">Default Card</option>
+              <select id="expCard" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                <option value="Default Card">Loading cards...</option>
               </select>
             </div>
             <div>
@@ -126,7 +127,17 @@
                 <option value="Cash / Bit">Cash / Bit</option>
               </select>
             </div>
-            <div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2">
+            
+            <!-- Monthly recurring flag -->
+            <div class="sm:col-span-2 md:col-span-3 flex items-center justify-between border-t border-slate-100 pt-3">
+              <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
+                <input type="checkbox" id="expIsRecurring" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+                <span class="ml-2 font-semibold text-indigo-700 flex items-center gap-1.5">
+                  <i class="fa-solid fa-repeat"></i> Mark as Monthly Recurring Payment
+                </span>
+                <span class="ml-2 text-[11px] text-slate-400 font-normal">(Highlights item for tracking month-to-month)</span>
+              </label>
+
               <button type="submit" id="expSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>
               </button>
@@ -177,7 +188,7 @@
         <!-- Transactions List -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-slate-800">Transactions</h3>
+            <h3 class="text-sm font-semibold text-slate-800">Transactions (Sorted by Date)</h3>
             <button onclick="fetchExpenses()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
               <i class="fa-solid fa-arrows-rotate"></i> Refresh
             </button>
@@ -444,7 +455,7 @@
                 </tr>
               </thead>
               <tbody id="cardsTableBody" class="divide-y divide-slate-100 text-slate-700">
-                <tr><td colspan="4" class="p-4 text-center text-slate-400">No cards registered yet.</td></tr>
+                <tr><td colspan="4" class="p-4 text-center text-slate-400">Loading cards...</td></tr>
               </tbody>
             </table>
           </div>
@@ -564,13 +575,14 @@
         expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
         packages = JSON.parse(localStorage.getItem("packages") || "[]");
         cards = JSON.parse(localStorage.getItem("cards") || "[]");
+        sortExpensesDescending();
         populateCardDropdown();
         renderCardsTable();
         updateMonthFilterOptions();
         renderExpenses();
         renderPackages();
       } catch (e) {
-        console.warn("Local storage cache load error:", e);
+        console.warn("Cache load error:", e);
       }
 
       fetchAll();
@@ -603,17 +615,34 @@
     }
 
     function switchTab(tab) {
-      ['expenses', 'analytics', 'packages', 'settings'].forEach(t => {
-        const view = document.getElementById(`view-${t}`);
-        if (view) view.classList.toggle('hidden', t !== tab);
-        const btn = document.getElementById(`tab-${t}`);
-        if (btn) {
-          btn.className = (t === tab)
-            ? "tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap"
-            : "tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap";
+      try {
+        ['expenses', 'analytics', 'packages', 'settings'].forEach(t => {
+          const view = document.getElementById(`view-${t}`);
+          if (view) {
+            if (t === tab) view.classList.remove('hidden');
+            else view.classList.add('hidden');
+          }
+          const btn = document.getElementById(`tab-${t}`);
+          if (btn) {
+            btn.className = (t === tab)
+              ? "tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap"
+              : "tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap";
+          }
+        });
+        if (tab === 'analytics' && typeof renderAnalytics === 'function') {
+          renderAnalytics();
         }
+      } catch (err) {
+        console.error("Tab switch failed:", err);
+      }
+    }
+
+    function sortExpensesDescending() {
+      expenses.sort((a, b) => {
+        const da = a.date || '';
+        const db = b.date || '';
+        return db.localeCompare(da);
       });
-      if (tab === 'analytics') renderAnalytics();
     }
 
     /* ------------------- CARDS ------------------- */
@@ -622,7 +651,23 @@
         const res = await fetch(`${getScriptUrl()}?sheet=Cards&t=${Date.now()}`);
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          cards = data;
+          cards = data.map((item, idx) => {
+            let nickname = '';
+            let issuer = '';
+            let day = '';
+            for (const key of Object.keys(item)) {
+              const k = key.toLowerCase().replace(/[\s\r\n]/g, '');
+              if (k.includes('nick') || k.includes('name')) nickname = item[key];
+              else if (k.includes('issuer') || k.includes('type')) issuer = item[key];
+              else if (k.includes('bill') || k.includes('cycle') || k.includes('day')) day = item[key];
+            }
+            return {
+              id: String(item.id || item.ID || `c_${idx}`),
+              nickname: String(nickname || item.nickname || item.Nickname || `Card ${idx + 1}`).trim(),
+              issuer: String(issuer || item.issuer || item.Issuer || '-').trim(),
+              billingCycleDay: String(day || item.billingCycleDay || item.BillingCycleDay || '-').trim()
+            };
+          });
           localStorage.setItem("cards", JSON.stringify(cards));
         }
       } catch (e) {
@@ -635,30 +680,34 @@
     function populateCardDropdown() {
       const select = document.getElementById("expCard");
       if (!select) return;
-      if (!cards.length) {
-        select.innerHTML = `<option value="Default Card">Default Card</option>`;
-        return;
-      }
-      select.innerHTML = cards.map(c => {
-        const name = c.nickname || c.Nickname || c.name || 'Card';
+      
+      const currentSelected = select.value;
+      const list = cards.length ? cards : [{ nickname: "Default Card" }];
+      
+      select.innerHTML = list.map(c => {
+        const name = (c.nickname || 'Default Card').trim();
         return `<option value="${name}">${name}</option>`;
       }).join('');
+
+      if (currentSelected && list.some(c => c.nickname === currentSelected)) {
+        select.value = currentSelected;
+      }
     }
 
     function renderCardsTable() {
       const tbody = document.getElementById("cardsTableBody");
       if (!tbody) return;
       if (!cards.length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No cards registered yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No cards registered yet. Add one above.</td></tr>`;
         return;
       }
       tbody.innerHTML = cards.map((c, i) => `
         <tr class="hover:bg-slate-50 border-b border-slate-100">
-          <td class="p-2.5 font-medium text-slate-900">${c.nickname || c.Nickname || '-'}</td>
-          <td class="p-2.5 text-slate-600">${c.issuer || c.Issuer || '-'}</td>
-          <td class="p-2.5 text-slate-500">${c.billingCycleDay || c.BillingCycleDay || '-'}</td>
+          <td class="p-2.5 font-medium text-slate-900">${c.nickname || '-'}</td>
+          <td class="p-2.5 text-slate-600">${c.issuer || '-'}</td>
+          <td class="p-2.5 text-slate-500">${c.billingCycleDay || '-'}</td>
           <td class="p-2.5 text-center">
-            <button onclick="deleteCard('${c.id || i}')" class="text-rose-500 text-xs px-2 py-0.5">
+            <button onclick="deleteCard('${c.id || i}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-0.5">
               <i class="fa-solid fa-trash"></i>
             </button>
           </td>
@@ -715,6 +764,7 @@
             const amount = parseFloat(item.amount || item.Amount || 0);
             const currency = item.currency || item.Currency || 'ILS';
             const ilsVal = parseFloat(item.ilsAmount || item.IlsAmount || item.ILS || item.ils || (amount * (RATES[currency] || 1)));
+            const isRec = String(item.isRecurring || item.IsRecurring || '').toLowerCase() === 'yes' || Boolean(item.isRecurring === true);
 
             return {
               id: String(item.id || item.ID || `exp_${idx}`),
@@ -725,14 +775,17 @@
               ilsAmount: isNaN(ilsVal) ? (amount || 0) : ilsVal,
               category: String(item.category || item.Category || 'General'),
               card: String(item.card || item.Card || 'Default Card'),
-              paymentMethod: String(item.paymentMethod || item.PaymentMethod || 'Credit Card')
+              paymentMethod: String(item.paymentMethod || item.PaymentMethod || 'Credit Card'),
+              isRecurring: isRec
             };
           });
+          sortExpensesDescending();
           localStorage.setItem("expenses", JSON.stringify(expenses));
           setSyncStatus("Cloud Synced", "emerald");
         }
       } catch (err) {
         expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
+        sortExpensesDescending();
         setSyncStatus("Cached / Offline", "slate");
       }
 
@@ -771,7 +824,7 @@
         filtered = expenses.filter(item => item.date && item.date.startsWith(selectedMonth));
       }
 
-      if (badge) badge.textContent = `Showing ${filtered.length} entries`;
+      if (badge) badge.textContent = `Showing ${filtered.length} entries (Sorted newest first)`;
 
       if (!filtered.length) {
         tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No transactions found.</td></tr>`;
@@ -787,9 +840,14 @@
         const sym = item.currency === 'USD' ? '$' : item.currency === 'EUR' ? '€' : '₪';
 
         return `
-          <tr class="hover:bg-slate-50 border-b border-slate-100">
-            <td class="p-3 text-slate-500 whitespace-nowrap">${item.date || '-'}</td>
-            <td class="p-3 font-medium text-slate-900">${item.description}</td>
+          <tr class="hover:bg-slate-50 border-b border-slate-100 ${item.isRecurring ? 'bg-indigo-50/20' : ''}">
+            <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-xs">${item.date || '-'}</td>
+            <td class="p-3 font-medium text-slate-900">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span>${item.description}</span>
+                ${item.isRecurring ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700"><i class="fa-solid fa-repeat"></i> Monthly</span>` : ''}
+              </div>
+            </td>
             <td class="p-3"><span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700">${item.card}</span></td>
             <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">${item.category}</span></td>
             <td class="p-3 text-right font-medium">${sym}${Number(item.amount).toFixed(2)}</td>
@@ -825,6 +883,7 @@
       const category = document.getElementById("expCategory").value;
       const card = document.getElementById("expCard").value;
       const method = document.getElementById("expMethod").value;
+      const isRecurring = document.getElementById("expIsRecurring").checked;
       const editId = document.getElementById("editExpId").value.trim();
       const isEditing = Boolean(editId);
 
@@ -835,30 +894,23 @@
       const payload = {
         id: targetId,
         date: date,
-        Date: date,
         description: desc,
-        Description: desc,
         amount: rawAmount,
-        Amount: rawAmount,
         currency: currency,
-        Currency: currency,
         ilsAmount: parseFloat(ilsAmount),
-        IlsAmount: parseFloat(ilsAmount),
         category: category,
-        Category: category,
         card: card,
-        Card: card,
         paymentMethod: method,
-        PaymentMethod: method,
-        isRecurring: "No"
+        isRecurring: isRecurring ? "Yes" : "No"
       };
 
       if (isEditing) {
-        expenses = expenses.map(x => String(x.id) === String(editId) ? payload : x);
+        expenses = expenses.map(x => String(x.id) === String(editId) ? { ...payload, isRecurring } : x);
       } else {
-        expenses.unshift(payload);
+        expenses.unshift({ ...payload, isRecurring });
       }
 
+      sortExpensesDescending();
       localStorage.setItem("expenses", JSON.stringify(expenses));
       updateMonthFilterOptions();
       renderExpenses();
@@ -895,6 +947,7 @@
       document.getElementById("expCategory").value = exp.category;
       document.getElementById("expCard").value = exp.card;
       document.getElementById("expMethod").value = exp.paymentMethod;
+      document.getElementById("expIsRecurring").checked = Boolean(exp.isRecurring);
 
       document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-pen text-amber-500"></i> Edit Expense`;
       document.getElementById("expSubmitText").textContent = "Update Expense";
@@ -908,6 +961,7 @@
       document.getElementById("expAmount").value = "";
       const d = document.getElementById("expDate");
       if (d) d.value = new Date().toISOString().split('T')[0];
+      document.getElementById("expIsRecurring").checked = false;
       document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense`;
       document.getElementById("expSubmitText").textContent = "Save Expense";
       document.getElementById("cancelEditBtn").classList.add("hidden");
@@ -1018,7 +1072,7 @@
             labels: Object.keys(catTotals),
             datasets: [{
               data: Object.values(catTotals),
-              backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#ef4444', '#06b6d4', '#3b82f6', '#8b5cf6', '#14b8a6']
+              backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#ef4444', '#06b6d4', '#3b82f6', '#8b5cf6', '#14b8a6', '#64748b']
             }]
           },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
@@ -1042,7 +1096,7 @@
       }
     }
 
-    /* ------------------- PACKAGES & EXPENSE AUTO-SYNC ------------------- */
+    /* ------------------- PACKAGES & EXPENSE SYNC ------------------- */
     function toggleReceivedCheck(checked) {
       const box = document.getElementById("receivedDateBox");
       const dateEl = document.getElementById("pkgReceivedDate");
@@ -1068,50 +1122,53 @@
       }
     }
 
-    // Sync an individual package cost line (item or shipping) into Expenses without creating duplicates
-    function syncLinkedExpense(targetId, date, desc, amount, currency) {
-      if (!amount || amount <= 0) return null;
-      const rate = RATES[currency] || 1;
-      const ilsAmount = (amount * rate).toFixed(2);
-      const isExisting = expenses.some(x => String(x.id) === String(targetId));
-      const expId = targetId || ("exp_pkg_" + Date.now() + "_" + Math.floor(Math.random() * 1000));
+    function syncLinkedExpense(expId, date, desc, amount, currency) {
+      try {
+        if (!amount || amount <= 0) return null;
+        const rate = (typeof RATES !== 'undefined' && RATES[currency]) ? RATES[currency] : 1;
+        const ilsAmount = (amount * rate).toFixed(2);
+        
+        const payload = {
+          id: expId,
+          date: date,
+          description: desc,
+          amount: amount,
+          currency: currency,
+          ilsAmount: parseFloat(ilsAmount),
+          category: "Shopping",
+          card: "Default Card",
+          paymentMethod: "Credit Card",
+          isRecurring: false
+        };
 
-      const payload = {
-        id: expId,
-        date: date,
-        description: desc,
-        amount: amount,
-        currency: currency,
-        ilsAmount: parseFloat(ilsAmount),
-        category: "Online Shopping",
-        card: "Default Card",
-        paymentMethod: "Credit Card",
-        isRecurring: "No"
-      };
+        const existingIdx = expenses.findIndex(x => String(x.id) === String(expId));
+        if (existingIdx !== -1) {
+          expenses[existingIdx] = payload;
+        } else {
+          expenses.unshift(payload);
+        }
 
-      if (isExisting) {
-        expenses = expenses.map(x => String(x.id) === String(expId) ? payload : x);
-      } else {
-        expenses.unshift(payload);
+        sortExpensesDescending();
+        localStorage.setItem("expenses", JSON.stringify(expenses));
+        if (typeof updateMonthFilterOptions === 'function') updateMonthFilterOptions();
+        if (typeof renderExpenses === 'function') renderExpenses();
+        if (typeof renderAnalytics === 'function') renderAnalytics();
+
+        fetch(getScriptUrl(), {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify({
+            action: existingIdx !== -1 ? "update" : "add",
+            sheet: "Expenses",
+            id: existingIdx !== -1 ? expId : undefined,
+            data: { ...payload, isRecurring: "No" }
+          })
+        }).catch(e => console.warn("Background expense sync deferred:", e));
+
+        return expId;
+      } catch (err) {
+        console.error("Non-fatal syncLinkedExpense error:", err);
       }
-
-      localStorage.setItem("expenses", JSON.stringify(expenses));
-      updateMonthFilterOptions();
-      renderExpenses();
-      renderAnalytics();
-
-      fetch(getScriptUrl(), {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({
-          action: isExisting ? "update" : "add",
-          sheet: "Expenses",
-          id: isExisting ? expId : undefined,
-          data: payload
-        })
-      });
-
-      return expId;
     }
 
     async function fetchPackages() {
@@ -1133,9 +1190,7 @@
             currency: String(item.currency || item.Currency || 'USD'),
             shippingFee: parseFloat(item.shippingFee !== undefined ? item.shippingFee : (item.shippingFeeIls || 0)) || 0,
             shippingCurrency: String(item.shippingCurrency || item.ShippingCurrency || 'USD'),
-            totalCostIls: parseFloat(item.totalCostIls || item.TotalCostIls || 0) || 0,
-            itemExpId: item.itemExpId || '',
-            shippingExpId: item.shippingExpId || ''
+            totalCostIls: parseFloat(item.totalCostIls || item.TotalCostIls || 0) || 0
           }));
           localStorage.setItem("packages", JSON.stringify(packages));
         }
@@ -1159,7 +1214,7 @@
             <td class="p-3 text-center">
               <input type="checkbox" ${pkg.isReceived ? 'checked' : ''} onchange="quickToggleReceived('${pkg.id}', this.checked)" class="w-4 h-4 text-emerald-600 rounded cursor-pointer border-slate-300 focus:ring-emerald-500" />
             </td>
-            <td class="p-3 text-slate-500 whitespace-nowrap">${pkg.date || '-'}</td>
+            <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-xs">${pkg.date || '-'}</td>
             <td class="p-3 font-medium text-slate-700 whitespace-nowrap">${pkg.shop || '-'}</td>
             <td class="p-3 font-medium text-slate-900">${pkg.itemDescription}</td>
             <td class="p-3">
@@ -1201,57 +1256,6 @@
       });
     }
 
-    // Safely syncs an item or shipping charge directly to Expenses without creating duplicates
-    function syncPackageExpense(expId, date, desc, amount, currency) {
-      try {
-        if (!amount || amount <= 0) return;
-        const numAmount = parseFloat(amount);
-        if (isNaN(numAmount) || numAmount <= 0) return;
-
-        const rate = (typeof RATES !== 'undefined' && RATES[currency]) ? RATES[currency] : 1;
-        const ilsAmount = parseFloat((numAmount * rate).toFixed(2));
-
-        const payload = {
-          id: expId,
-          date: date || new Date().toISOString().split('T')[0],
-          description: desc,
-          amount: numAmount,
-          currency: currency || "ILS",
-          ilsAmount: ilsAmount,
-          category: "Online Shopping",
-          card: "Default Card",
-          paymentMethod: "Credit Card",
-          isRecurring: "No"
-        };
-
-        const existingIdx = expenses.findIndex(x => String(x.id) === String(expId));
-        if (existingIdx !== -1) {
-          expenses[existingIdx] = payload;
-        } else {
-          expenses.unshift(payload);
-        }
-
-        localStorage.setItem("expenses", JSON.stringify(expenses));
-        if (typeof updateMonthFilterOptions === 'function') updateMonthFilterOptions();
-        if (typeof renderExpenses === 'function') renderExpenses();
-        if (typeof renderAnalytics === 'function') renderAnalytics();
-
-        // Push to Google Sheets (update if row exists, otherwise append)
-        fetch(getScriptUrl(), {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify({
-            action: existingIdx !== -1 ? "update" : "add",
-            sheet: "Expenses",
-            id: existingIdx !== -1 ? expId : undefined,
-            data: payload
-          })
-        }).catch(e => console.warn("Background expense sync deferred:", e));
-      } catch (err) {
-        console.error("Non-fatal syncPackageExpense error:", err);
-      }
-    }
-
     function handlePackageSubmit(e) {
       if (e) e.preventDefault();
       const btn = document.getElementById("pkgSubmitBtn");
@@ -1275,41 +1279,23 @@
 
       const editId = document.getElementById("editPkgId").value.trim();
       const isEditing = Boolean(editId);
-      const existingPkg = isEditing ? packages.find(x => String(x.id) === String(editId)) : null;
+      const targetId = isEditing ? editId : ("pkg_" + Date.now());
 
       const itemIls = cost * (RATES[currency] || 1);
       const shipIls = shippingFee * (RATES[shippingCurrency] || 1);
       const totalCostIls = (itemIls + shipIls).toFixed(2);
-      const targetId = isEditing ? editId : ("pkg_" + Date.now());
 
-      // Deterministic linked IDs
       const itemExpId = `${targetId}_item`;
-      const shipExpId = `${targetId}_ship`;
+      const shippingExpId = `${targetId}_ship`;
 
-      // 1. Sync item cost as an expense
       if (cost > 0) {
         const itemDesc = shop ? `[${shop}] ${desc}` : desc;
-        syncPackageExpense(itemExpId, date, itemDesc, cost, currency);
+        syncLinkedExpense(itemExpId, date, itemDesc, cost, currency);
       }
 
-      // 2. Sync shipping fee as an expense
       if (shippingFee > 0) {
         const shipDesc = `Shipping: ${desc} (${forwarder})`;
-        syncPackageExpense(shipExpId, date, shipDesc, shippingFee, shippingCurrency);
-      }
-
-      // 1. Sync Item Cost as Expense
-      let itemExpId = existingPkg ? existingPkg.itemExpId : '';
-      if (cost > 0) {
-        const itemDesc = shop ? `[${shop}] ${desc}` : desc;
-        itemExpId = syncLinkedExpense(itemExpId, date, itemDesc, cost, currency);
-      }
-
-      // 2. Sync Shipping Fee as Expense
-      let shippingExpId = existingPkg ? existingPkg.shippingExpId : '';
-      if (shippingFee > 0) {
-        const shipDesc = `Shipping: ${desc} (${forwarder})`;
-        shippingExpId = syncLinkedExpense(shippingExpId, date, shipDesc, shippingFee, shippingCurrency);
+        syncLinkedExpense(shippingExpId, date, shipDesc, shippingFee, shippingCurrency);
       }
 
       const payload = {
@@ -1327,9 +1313,7 @@
         currency: currency,
         shippingFee: shippingFee,
         shippingCurrency: shippingCurrency,
-        totalCostIls: parseFloat(totalCostIls),
-        itemExpId: itemExpId || '',
-        shippingExpId: shippingExpId || ''
+        totalCostIls: parseFloat(totalCostIls)
       };
 
       if (isEditing) {
@@ -1409,18 +1393,29 @@
       localStorage.setItem("packages", JSON.stringify(packages));
       renderPackages();
 
-      // Remove deterministic linked expenses locally
       const itemExpId = `${id}_item`;
       const shipExpId = `${id}_ship`;
       expenses = expenses.filter(x => String(x.id) !== itemExpId && String(x.id) !== shipExpId);
+      sortExpensesDescending();
       localStorage.setItem("expenses", JSON.stringify(expenses));
       renderExpenses();
       renderAnalytics();
 
-      // Delete from Sheets backend
-      fetch(getScriptUrl(), { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", sheet: "Packages", id: id }) });
-      fetch(getScriptUrl(), { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", sheet: "Expenses", id: itemExpId }) });
-      fetch(getScriptUrl(), { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", sheet: "Expenses", id: shipExpId }) });
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Packages", id: id })
+      });
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Expenses", id: itemExpId })
+      });
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Expenses", id: shipExpId })
+      });
     }
 
     /* ------------------- HELPERS ------------------- */
