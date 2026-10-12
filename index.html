@@ -1201,6 +1201,57 @@
       });
     }
 
+    // Safely syncs an item or shipping charge directly to Expenses without creating duplicates
+    function syncPackageExpense(expId, date, desc, amount, currency) {
+      try {
+        if (!amount || amount <= 0) return;
+        const numAmount = parseFloat(amount);
+        if (isNaN(numAmount) || numAmount <= 0) return;
+
+        const rate = (typeof RATES !== 'undefined' && RATES[currency]) ? RATES[currency] : 1;
+        const ilsAmount = parseFloat((numAmount * rate).toFixed(2));
+
+        const payload = {
+          id: expId,
+          date: date || new Date().toISOString().split('T')[0],
+          description: desc,
+          amount: numAmount,
+          currency: currency || "ILS",
+          ilsAmount: ilsAmount,
+          category: "Online Shopping",
+          card: "Default Card",
+          paymentMethod: "Credit Card",
+          isRecurring: "No"
+        };
+
+        const existingIdx = expenses.findIndex(x => String(x.id) === String(expId));
+        if (existingIdx !== -1) {
+          expenses[existingIdx] = payload;
+        } else {
+          expenses.unshift(payload);
+        }
+
+        localStorage.setItem("expenses", JSON.stringify(expenses));
+        if (typeof updateMonthFilterOptions === 'function') updateMonthFilterOptions();
+        if (typeof renderExpenses === 'function') renderExpenses();
+        if (typeof renderAnalytics === 'function') renderAnalytics();
+
+        // Push to Google Sheets (update if row exists, otherwise append)
+        fetch(getScriptUrl(), {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify({
+            action: existingIdx !== -1 ? "update" : "add",
+            sheet: "Expenses",
+            id: existingIdx !== -1 ? expId : undefined,
+            data: payload
+          })
+        }).catch(e => console.warn("Background expense sync deferred:", e));
+      } catch (err) {
+        console.error("Non-fatal syncPackageExpense error:", err);
+      }
+    }
+
     function handlePackageSubmit(e) {
       if (e) e.preventDefault();
       const btn = document.getElementById("pkgSubmitBtn");
@@ -1230,6 +1281,22 @@
       const shipIls = shippingFee * (RATES[shippingCurrency] || 1);
       const totalCostIls = (itemIls + shipIls).toFixed(2);
       const targetId = isEditing ? editId : ("pkg_" + Date.now());
+
+      // Deterministic linked IDs
+      const itemExpId = `${targetId}_item`;
+      const shipExpId = `${targetId}_ship`;
+
+      // 1. Sync item cost as an expense
+      if (cost > 0) {
+        const itemDesc = shop ? `[${shop}] ${desc}` : desc;
+        syncPackageExpense(itemExpId, date, itemDesc, cost, currency);
+      }
+
+      // 2. Sync shipping fee as an expense
+      if (shippingFee > 0) {
+        const shipDesc = `Shipping: ${desc} (${forwarder})`;
+        syncPackageExpense(shipExpId, date, shipDesc, shippingFee, shippingCurrency);
+      }
 
       // 1. Sync Item Cost as Expense
       let itemExpId = existingPkg ? existingPkg.itemExpId : '';
@@ -1337,15 +1404,23 @@
     }
 
     function deletePackage(id) {
-      if (!confirm("Delete package?")) return;
+      if (!confirm("Delete package and its linked expenses?")) return;
       packages = packages.filter(x => String(x.id) !== String(id));
       localStorage.setItem("packages", JSON.stringify(packages));
       renderPackages();
-      fetch(getScriptUrl(), {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({ action: "delete", sheet: "Packages", id: id })
-      });
+
+      // Remove deterministic linked expenses locally
+      const itemExpId = `${id}_item`;
+      const shipExpId = `${id}_ship`;
+      expenses = expenses.filter(x => String(x.id) !== itemExpId && String(x.id) !== shipExpId);
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+      renderExpenses();
+      renderAnalytics();
+
+      // Delete from Sheets backend
+      fetch(getScriptUrl(), { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", sheet: "Packages", id: id }) });
+      fetch(getScriptUrl(), { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", sheet: "Expenses", id: itemExpId }) });
+      fetch(getScriptUrl(), { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", sheet: "Expenses", id: shipExpId }) });
     }
 
     /* ------------------- HELPERS ------------------- */
