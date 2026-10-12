@@ -645,6 +645,7 @@
     }
 
     function switchTab(tab) {
+      if (tab === 'packages') renderRecurringShoppingBanner();
       try {
         ['expenses', 'analytics', 'packages', 'settings'].forEach(t => {
           const view = document.getElementById(`view-${t}`);
@@ -1262,6 +1263,7 @@
     }
 
     function renderPackages() {
+      renderRecurringShoppingBanner();
       const tbody = document.getElementById("packagesTableBody");
       if (!tbody) return;
       if (!packages.length) {
