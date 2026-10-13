@@ -1,4 +1,4 @@
-<!-- VER 6.0 -->
+<!-- VER 7.0 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,9 +19,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-    /* Hide scrollbars on horizontal scroll tabs while preserving touch scrolling */
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
@@ -48,7 +45,7 @@
     </header>
 
     <!-- Navigation Tabs -->
-    <nav class="flex space-x-2 border-b border-slate-200 mb-6 overflow-x-auto pb-1 text-sm font-medium no-scrollbar">
+    <nav class="flex space-x-2 border-b border-slate-200 mb-6 overflow-x-auto pb-1 text-sm font-medium">
       <button onclick="switchTab('expenses')" id="tab-expenses" class="tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-receipt"></i> Expenses
       </button>
@@ -132,14 +129,14 @@
               </select>
             </div>
             
-            <!-- Monthly recurring highlight checkbox -->
+            <!-- Monthly recurring flag -->
             <div class="sm:col-span-2 md:col-span-3 flex items-center justify-between border-t border-slate-100 pt-3">
               <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
                 <input type="checkbox" id="expIsRecurring" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
                 <span class="ml-2 font-semibold text-indigo-700 flex items-center gap-1.5">
                   <i class="fa-solid fa-repeat"></i> Mark as Monthly Recurring Payment
                 </span>
-                <span class="ml-2 text-[11px] text-slate-400 font-normal hidden sm:inline">(Highlights item for tracking month-to-month)</span>
+                <span class="ml-2 text-[11px] text-slate-400 font-normal">(Highlights item for tracking month-to-month)</span>
               </label>
 
               <button type="submit" id="expSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
@@ -192,7 +189,7 @@
         <!-- Transactions List -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-slate-800">Transactions (Sorted by Date &bull; Newest First)</h3>
+            <h3 class="text-sm font-semibold text-slate-800">Transactions (Sorted by Date)</h3>
             <button onclick="fetchExpenses()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
               <i class="fa-solid fa-arrows-rotate"></i> Refresh
             </button>
@@ -220,47 +217,41 @@
 
       <!-- TAB 2: ANALYTICS & STATS -->
       <section id="view-analytics" class="hidden space-y-6">
-        <!-- Top KPI Metric Badges -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-[11px] font-medium text-slate-500 block truncate">Total Spend</span>
-            <span id="statTotalSpend" class="text-base sm:text-lg font-bold text-slate-900 mt-1 block">₪0.00</span>
+        <!-- Top KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 block truncate">Total Spend</span>
+            <span id="statTotalSpend" class="text-lg sm:text-xl font-bold text-slate-900 mt-1 block">₪0.00</span>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/20 shadow-sm">
-            <span class="text-[11px] font-medium text-emerald-700 block truncate flex items-center gap-1">
-              <i class="fa-solid fa-repeat text-[10px]"></i> Recurring
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span class="text-xs font-medium text-emerald-600 block truncate flex items-center gap-1.5">
+              <i class="fa-solid fa-repeat text-xs"></i> Monthly Recurring
             </span>
-            <span id="statRecurringSpend" class="text-base sm:text-lg font-bold text-emerald-700 mt-1 block">₪0.00</span>
+            <span id="statRecurringSpend" class="text-lg sm:text-xl font-bold text-emerald-600 mt-1 block">₪0.00</span>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-sky-200 bg-sky-50/20 shadow-sm">
-            <span class="text-[11px] font-medium text-sky-700 block truncate flex items-center gap-1">
-              <i class="fa-solid fa-box text-[10px]"></i> Packages
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span class="text-xs font-medium text-sky-600 block truncate flex items-center gap-1.5">
+              <i class="fa-solid fa-box text-xs"></i> Packages Spend
             </span>
-            <span id="statPackagesSpend" class="text-base sm:text-lg font-bold text-sky-700 mt-1 block">₪0.00</span>
+            <span id="statPackagesSpend" class="text-lg sm:text-xl font-bold text-sky-600 mt-1 block">₪0.00</span>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-[11px] font-medium text-slate-500 block truncate">Avg Ticket</span>
-            <span id="statAvgTicket" class="text-base sm:text-lg font-bold text-slate-900 mt-1 block">₪0.00</span>
-          </div>
-          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-[11px] font-medium text-slate-500 block truncate">Top Category</span>
-            <span id="statTopCat" class="text-xs sm:text-sm font-bold text-slate-800 mt-1 block truncate">-</span>
-          </div>
-          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-[11px] font-medium text-slate-500 block truncate">Most Used Card</span>
-            <span id="statTopCard" class="text-xs sm:text-sm font-bold text-slate-800 mt-1 block truncate">-</span>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 block truncate flex items-center gap-1.5">
+              <i class="fa-solid fa-credit-card text-xs"></i> Most Used Card
+            </span>
+            <span id="statTopCard" class="text-sm sm:text-base font-bold text-slate-800 mt-1 block truncate">-</span>
           </div>
         </div>
 
-        <!-- Monthly Spend Stacked Bar (Standard vs Recurring) -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <!-- Chart 1: Monthly Spend Breakdown (Standard vs Recurring) -->
+        <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
             <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
               <i class="fa-solid fa-chart-column text-indigo-500"></i> Monthly Spend: Standard vs Recurring (₪ ILS)
             </h3>
             <div class="flex items-center gap-3 text-xs font-medium">
               <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Standard</span>
-              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Monthly Recurring</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Recurring</span>
             </div>
           </div>
           <div class="h-64 relative">
@@ -268,22 +259,22 @@
           </div>
         </div>
 
-        <!-- Monthly Package / Online Shopping Spend Trend -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <!-- Chart 2: Monthly Packages Spend Breakdown -->
+        <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
             <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
               <i class="fa-solid fa-box text-sky-500"></i> Online Shopping & Packages Spend per Month (₪ ILS)
             </h3>
-            <span class="text-xs text-slate-400 font-mono">From Package Tracker records</span>
+            <span class="text-xs text-slate-400 font-mono">Calculated from Package Tracker</span>
           </div>
           <div class="h-56 relative">
             <canvas id="packagesTrendChart"></canvas>
           </div>
         </div>
 
-        <!-- Doughnut Charts (Category & Card Breakdown) -->
+        <!-- Category & Card Doughnuts -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-5">
             <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
               <i class="fa-solid fa-chart-pie text-emerald-500"></i> Spend by Category
             </h3>
@@ -302,7 +293,7 @@
         </div>
 
         <!-- Card Breakdown Table -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
           <div class="p-4 border-b border-slate-100">
             <h3 class="text-sm font-semibold text-slate-800">Card Utilization Breakdown</h3>
           </div>
@@ -380,10 +371,13 @@
               </select>
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">Item Purchase Cost</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-600">Item Purchase Cost</label>
+                <span id="itemCostIlsPreview" class="text-[11px] font-mono font-semibold text-indigo-600">≈ ₪0.00</span>
+              </div>
               <div class="flex gap-2">
-                <input type="number" step="0.01" id="pkgCost" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-                <select id="pkgCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                <input type="number" step="0.01" id="pkgCost" placeholder="0.00" oninput="updatePackageConversionPreview()" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="pkgCurrency" onchange="updatePackageConversionPreview()" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
                   <option value="USD">$ USD</option>
                   <option value="ILS">₪ ILS</option>
                   <option value="EUR">€ EUR</option>
@@ -391,10 +385,13 @@
               </div>
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder Shipping Fee</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-600">Shipping Fee</label>
+                <span id="shipFeeIlsPreview" class="text-[11px] font-mono font-semibold text-indigo-600">≈ ₪0.00</span>
+              </div>
               <div class="flex gap-2">
-                <input type="number" step="0.01" id="pkgShippingFee" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-                <select id="pkgShippingCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                <input type="number" step="0.01" id="pkgShippingFee" placeholder="0.00" oninput="updatePackageConversionPreview()" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="pkgShippingCurrency" onchange="updatePackageConversionPreview()" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
                   <option value="USD">$ USD</option>
                   <option value="ILS">₪ ILS</option>
                 </select>
@@ -417,7 +414,6 @@
           </form>
         </div>
 
-        <!-- Tracked Packages Table -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="p-4 border-b border-slate-100 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-slate-800">Tracked Packages</h3>
@@ -457,7 +453,7 @@
               <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
                 <i class="fa-regular fa-credit-card text-indigo-500"></i> Manage Card Nicknames
               </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Saved directly to your Google Sheet <code>Cards</code> tab.</p>
+              <p class="text-xs text-slate-500 mt-0.5">Saved to your Google Sheet <code>Cards</code> tab.</p>
             </div>
             <button onclick="fetchCards()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
               <i class="fa-solid fa-arrows-rotate"></i> Reload Cards
@@ -507,12 +503,12 @@
               <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
                 <i class="fa-solid fa-cloud-arrow-up text-indigo-500"></i> Backend Connection
               </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Google Apps Script Web App Deployment URL.</p>
+              <p class="text-xs text-slate-500 mt-0.5">Google Apps Script Web App URL.</p>
             </div>
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Active Web App URL</label>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Web App URL</label>
             <div class="flex gap-2">
               <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full text-xs font-mono rounded-lg border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
               <button onclick="saveCustomScriptUrl()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg shadow-sm whitespace-nowrap">
@@ -540,7 +536,7 @@
   </div>
 
   <script>
-    // Hardcoded Active Google Apps Script Web App Deployment URL
+    // Embedded Active Google Apps Script Web App URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
 
     function getScriptUrl() {
@@ -548,6 +544,18 @@
     }
 
     const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
+
+    function getRateToILS(currency) {
+      if (!currency) return 1;
+      const clean = String(currency).trim().toUpperCase();
+      if (clean === 'ILS') return 1;
+      if (typeof RATES !== 'undefined' && RATES[clean]) {
+        return parseFloat(RATES[clean]);
+      }
+      if (clean === 'USD') return 3.70;
+      if (clean === 'EUR') return 4.00;
+      return 1;
+    }
 
     let expenses = [];
     let packages = [];
@@ -594,6 +602,14 @@
     function parseDateToISO(raw) {
       if (!raw) return '';
       let str = String(raw).replace(/^'+/, '').trim();
+      if (!str) return '';
+
+      // 1. Strict ISO YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        return str;
+      }
+
+      // 2. Handle slashes DD/MM/YYYY or MM/DD/YYYY or YYYY/MM/DD
       if (str.includes('/')) {
         const p = str.split('/');
         if (p.length === 3) {
@@ -601,10 +617,20 @@
           if (p[0].length === 4) return `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}`;
         }
       }
+
+      // 3. Handle textual strings like "8 Oct 2026", "08-Oct-2026", "October 8, 2026"
+      const parsed = Date.parse(str);
+      if (!isNaN(parsed)) {
+        const d = new Date(parsed);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
       return str.split('T')[0];
     }
 
-    // Sort descending by date (newest first)
     function sortExpensesDescending() {
       expenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     }
@@ -656,6 +682,8 @@
           if (e) e.textContent = RATES.EUR.toFixed(2);
           const b = document.getElementById("fxBadge");
           if (b) { b.textContent = "Live"; b.className = "text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"; }
+          updatePackageConversionPreview();
+          if (typeof renderPackages === 'function') renderPackages();
         }
       } catch (err) {
         console.warn("FX fallback", err);
@@ -803,7 +831,12 @@
             const desc = item.description || item.Description || item.item || item.Item || item.title || Object.values(item)[1] || 'Expense';
             const amount = parseFloat(item.amount || item.Amount || 0);
             const currency = item.currency || item.Currency || 'ILS';
-            const ilsVal = parseFloat(item.ilsAmount || item.IlsAmount || item.ILS || item.ils || (amount * (RATES[currency] || 1)));
+            const rate = getRateToILS(currency);
+            let ilsVal = parseFloat(item.ilsAmount || item.IlsAmount || item.ILS || item.ils || 0);
+            if (isNaN(ilsVal) || ilsVal === 0 || (currency !== 'ILS' && ilsVal === amount)) {
+              ilsVal = parseFloat((amount * rate).toFixed(2));
+            }
+
             const isRec = String(item.isRecurring || item.IsRecurring || '').toLowerCase() === 'yes' || Boolean(item.isRecurring === true);
 
             return {
@@ -927,8 +960,8 @@
       const editId = document.getElementById("editExpId").value.trim();
       const isEditing = Boolean(editId);
 
-      const rate = RATES[currency] || 1;
-      const ilsAmount = (rawAmount * rate).toFixed(2);
+      const rate = getRateToILS(currency);
+      const ilsAmount = parseFloat((rawAmount * rate).toFixed(2));
       const targetId = isEditing ? editId : ("exp_" + Date.now());
 
       const payload = {
@@ -937,7 +970,7 @@
         description: desc,
         amount: rawAmount,
         currency: currency,
-        ilsAmount: parseFloat(ilsAmount),
+        ilsAmount: ilsAmount,
         category: category,
         card: card,
         paymentMethod: method,
@@ -1020,7 +1053,7 @@
       });
     }
 
-    /* ------------------- ENHANCED ANALYTICS ------------------- */
+    /* ------------------- ANALYTICS ------------------- */
     function renderAnalytics() {
       const monthSelect = document.getElementById("monthFilter");
       const selectedMonth = monthSelect ? monthSelect.value : "ALL";
@@ -1035,7 +1068,6 @@
 
       let totalIls = 0;
       let recurringIls = 0;
-      let maxExpense = 0;
       const catTotals = {};
       const cardTotals = {};
       const cardCounts = {};
@@ -1043,7 +1075,6 @@
       filteredExp.forEach(item => {
         const val = parseFloat(item.ilsAmount) || 0;
         totalIls += val;
-        if (val > maxExpense) maxExpense = val;
 
         const isRec = item.isRecurring === true || String(item.isRecurring).toLowerCase() === 'yes';
         if (isRec) recurringIls += val;
@@ -1062,13 +1093,6 @@
       setEl("statTotalSpend", `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
       setEl("statRecurringSpend", `₪${recurringIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
       setEl("statPackagesSpend", `₪${pkgSpendIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-      setEl("statAvgTicket", `₪${filteredExp.length ? (totalIls / filteredExp.length).toFixed(2) : "0.00"}`);
-
-      let topCat = "-", topCatVal = 0;
-      for (const [k, v] of Object.entries(catTotals)) {
-        if (v > topCatVal) { topCatVal = v; topCat = k; }
-      }
-      setEl("statTopCat", topCatVal > 0 ? `${topCat} (₪${topCatVal.toFixed(0)})` : "-");
 
       let topCard = "-", topCardVal = 0;
       for (const [k, v] of Object.entries(cardTotals)) {
@@ -1100,7 +1124,7 @@
     }
 
     function buildCharts(catTotals, cardTotals) {
-      // 1. Stacked Monthly Spend: Standard vs Recurring
+      // 1. Stacked Monthly Trend: Standard vs Recurring
       const monthlyStandard = {};
       const monthlyRecurring = {};
       const allMonthsSet = new Set();
@@ -1129,17 +1153,17 @@
         trendChartInstance = new Chart(mCanvas.getContext("2d"), {
           type: 'bar',
           data: {
-            labels: mLabels.length ? mLabels : ['No Data'],
+            labels: mLabels,
             datasets: [
               {
                 label: 'Standard Expenses',
-                data: mLabels.length ? standardData : [0],
+                data: standardData,
                 backgroundColor: '#6366f1',
                 borderRadius: 4
               },
               {
                 label: 'Monthly Recurring',
-                data: mLabels.length ? recurringData : [0],
+                data: recurringData,
                 backgroundColor: '#10b981',
                 borderRadius: 4
               }
@@ -1159,7 +1183,7 @@
         });
       }
 
-      // 2. Dedicated Monthly Packages / Online Shopping Spend Trend
+      // 2. Monthly Packages Spend Chart
       const pkgMonthly = {};
       packages.forEach(pkg => {
         if (pkg.date && pkg.date.length >= 7) {
@@ -1232,7 +1256,7 @@
       }
     }
 
-    /* ------------------- PACKAGES & DETERMINISTIC EXPENSE SYNC ------------------- */
+    /* ------------------- PACKAGES & EXPENSE SYNC ------------------- */
     function toggleReceivedCheck(checked) {
       const box = document.getElementById("receivedDateBox");
       const dateEl = document.getElementById("pkgReceivedDate");
@@ -1258,12 +1282,26 @@
       }
     }
 
-    // Deterministic expense sync: modifies existing linked row or appends once
+    function updatePackageConversionPreview() {
+      const cost = parseFloat(document.getElementById("pkgCost")?.value) || 0;
+      const curr = document.getElementById("pkgCurrency")?.value || "USD";
+      const ship = parseFloat(document.getElementById("pkgShippingFee")?.value) || 0;
+      const shipCurr = document.getElementById("pkgShippingCurrency")?.value || "USD";
+
+      const itemIls = cost * getRateToILS(curr);
+      const shipIls = ship * getRateToILS(shipCurr);
+
+      const itemPrev = document.getElementById("itemCostIlsPreview");
+      const shipPrev = document.getElementById("shipFeeIlsPreview");
+      if (itemPrev) itemPrev.textContent = `≈ ₪${itemIls.toFixed(2)}`;
+      if (shipPrev) shipPrev.textContent = `≈ ₪${shipIls.toFixed(2)}`;
+    }
+
     function syncLinkedExpense(expId, date, desc, amount, currency) {
       try {
         if (!amount || amount <= 0) return null;
-        const rate = (typeof RATES !== 'undefined' && RATES[currency]) ? RATES[currency] : 1;
-        const ilsAmount = (amount * rate).toFixed(2);
+        const rate = getRateToILS(currency);
+        const ilsAmount = parseFloat((amount * rate).toFixed(2));
         
         const payload = {
           id: expId,
@@ -1271,7 +1309,7 @@
           description: desc,
           amount: amount,
           currency: currency,
-          ilsAmount: parseFloat(ilsAmount),
+          ilsAmount: ilsAmount,
           category: "Shopping",
           card: "Default Card",
           paymentMethod: "Credit Card",
@@ -1313,28 +1351,46 @@
         const res = await fetch(`${getScriptUrl()}?sheet=Packages&t=${Date.now()}`);
         const rawData = await res.json();
         if (Array.isArray(rawData)) {
-          packages = rawData.map((item, idx) => ({
-            id: String(item.id || item.ID || `pkg_${idx}`),
-            date: parseDateToISO(item.date || item.Date || item.purchaseDate || item.PurchaseDate),
-            shop: String(item.shop || item.Shop || item.store || item.Store || '-'),
-            itemDescription: String(item.itemDescription || item.ItemDescription || item.item || item.description || 'Package'),
-            trackingNumber: String(item.trackingNumber || item.TrackingNumber || item.tracking || ''),
-            forwarder: String(item.forwarder || item.Forwarder || 'RedBox'),
-            status: String(item.status || item.Status || 'Ordered'),
-            isReceived: String(item.isReceived || item.received || '').toLowerCase() === 'true' || item.status === 'Delivered',
-            receivedDate: parseDateToISO(item.receivedDate || item.ReceivedDate || ''),
-            itemCost: parseFloat(item.itemCost || item.ItemCost || 0) || 0,
-            currency: String(item.currency || item.Currency || 'USD'),
-            shippingFee: parseFloat(item.shippingFee !== undefined ? item.shippingFee : (item.shippingFeeIls || 0)) || 0,
-            shippingCurrency: String(item.shippingCurrency || item.ShippingCurrency || 'USD'),
-            totalCostIls: parseFloat(item.totalCostIls || item.TotalCostIls || 0) || 0
-          }));
+          packages = rawData.map((item, idx) => {
+            const itemCost = parseFloat(item.itemCost || item.ItemCost || 0) || 0;
+            const curr = String(item.currency || item.Currency || 'USD').trim().toUpperCase();
+            const shipFee = parseFloat(item.shippingFee !== undefined ? item.shippingFee : (item.shippingFeeIls || 0)) || 0;
+            const shipCurr = String(item.shippingCurrency || item.ShippingCurrency || 'USD').trim().toUpperCase();
+
+            // Calculate true converted ILS cost using live exchange rate
+            const trueLandedIls = parseFloat((itemCost * getRateToILS(curr) + shipFee * getRateToILS(shipCurr)).toFixed(2));
+
+            let storedIls = parseFloat(item.totalCostIls || item.TotalCostIls || 0);
+
+            // If foreign currency was saved with a 1:1 ratio or is missing, recalculate it
+            if (isNaN(storedIls) || storedIls <= 0 || (curr !== 'ILS' && Math.abs(storedIls - (itemCost + shipFee)) < 0.05)) {
+              storedIls = trueLandedIls;
+            }
+
+            return {
+              id: String(item.id || item.ID || `pkg_${idx}`),
+              date: parseDateToISO(item.date || item.Date || item.purchaseDate || item.PurchaseDate),
+              shop: String(item.shop || item.Shop || item.store || item.Store || '-'),
+              itemDescription: String(item.itemDescription || item.ItemDescription || item.item || item.description || 'Package'),
+              trackingNumber: String(item.trackingNumber || item.TrackingNumber || item.tracking || ''),
+              forwarder: String(item.forwarder || item.Forwarder || 'RedBox'),
+              status: String(item.status || item.Status || 'Ordered'),
+              isReceived: String(item.isReceived || item.received || '').toLowerCase() === 'true' || item.status === 'Delivered',
+              receivedDate: parseDateToISO(item.receivedDate || item.ReceivedDate || ''),
+              itemCost: itemCost,
+              currency: curr,
+              shippingFee: shipFee,
+              shippingCurrency: shipCurr,
+              totalCostIls: storedIls
+            };
+          });
           localStorage.setItem("packages", JSON.stringify(packages));
         }
       } catch (err) {
         packages = JSON.parse(localStorage.getItem("packages") || "[]");
       }
       renderPackages();
+      if (typeof renderAnalytics === 'function') renderAnalytics();
     }
 
     function renderPackages() {
@@ -1346,6 +1402,13 @@
       }
       tbody.innerHTML = packages.map(pkg => {
         const isUSD = pkg.currency === 'USD';
+        const isShipUSD = pkg.shippingCurrency === 'USD';
+        
+        // Always display the true converted ILS landed total
+        const dynamicTotalIls = (pkg.currency !== 'ILS' || pkg.shippingCurrency !== 'ILS')
+          ? (pkg.itemCost * getRateToILS(pkg.currency) + pkg.shippingFee * getRateToILS(pkg.shippingCurrency))
+          : pkg.totalCostIls;
+
         return `
           <tr class="hover:bg-slate-50 border-b border-slate-100 ${pkg.isReceived ? 'bg-emerald-50/20' : ''}">
             <td class="p-3 text-center">
@@ -1365,8 +1428,8 @@
               ${pkg.receivedDate ? `<span class="block text-[11px] text-slate-500 mt-0.5 font-mono">Recv: ${pkg.receivedDate}</span>` : ''}
             </td>
             <td class="p-3 text-right font-medium">${isUSD ? '$' : '₪'}${pkg.itemCost.toFixed(2)}</td>
-            <td class="p-3 text-right font-medium">${pkg.shippingCurrency === 'USD' ? '$' : '₪'}${pkg.shippingFee.toFixed(2)}</td>
-            <td class="p-3 text-right font-semibold text-slate-900">₪${pkg.totalCostIls.toFixed(2)}</td>
+            <td class="p-3 text-right font-medium">${isShipUSD ? '$' : '₪'}${pkg.shippingFee.toFixed(2)}</td>
+            <td class="p-3 text-right font-semibold text-slate-900">₪${Number(dynamicTotalIls).toFixed(2)}</td>
             <td class="p-3 text-center whitespace-nowrap">
               <button onclick="startPackageEdit('${pkg.id}')" class="text-indigo-600 px-1 py-1 text-xs"><i class="fa-solid fa-pen"></i></button>
               <button onclick="deletePackage('${pkg.id}')" class="text-rose-500 px-1 py-1 text-xs"><i class="fa-solid fa-trash"></i></button>
@@ -1418,11 +1481,10 @@
       const isEditing = Boolean(editId);
       const targetId = isEditing ? editId : ("pkg_" + Date.now());
 
-      const itemIls = cost * (RATES[currency] || 1);
-      const shipIls = shippingFee * (RATES[shippingCurrency] || 1);
-      const totalCostIls = (itemIls + shipIls).toFixed(2);
+      const itemIls = cost * getRateToILS(currency);
+      const shipIls = shippingFee * getRateToILS(shippingCurrency);
+      const totalCostIls = parseFloat((itemIls + shipIls).toFixed(2));
 
-      // Deterministic IDs prevent duplicate rows upon subsequent edits
       const itemExpId = `${targetId}_item`;
       const shippingExpId = `${targetId}_ship`;
 
@@ -1451,7 +1513,7 @@
         currency: currency,
         shippingFee: shippingFee,
         shippingCurrency: shippingCurrency,
-        totalCostIls: parseFloat(totalCostIls)
+        totalCostIls: totalCostIls
       };
 
       if (isEditing) {
@@ -1462,6 +1524,7 @@
 
       localStorage.setItem("packages", JSON.stringify(packages));
       renderPackages();
+      if (typeof renderAnalytics === 'function') renderAnalytics();
       cancelPackageEdit();
 
       if (btn) {
@@ -1500,6 +1563,8 @@
         document.getElementById("pkgReceivedDate").value = parseDateToISO(pkg.receivedDate);
       }
 
+      updatePackageConversionPreview();
+
       document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-pen text-amber-500"></i> Update Package`;
       document.getElementById("pkgSubmitText").textContent = "Update Package";
       document.getElementById("cancelPkgEditBtn").classList.remove("hidden");
@@ -1520,6 +1585,7 @@
         chk.checked = false;
         toggleReceivedCheck(false);
       }
+      updatePackageConversionPreview();
       document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order`;
       document.getElementById("pkgSubmitText").textContent = "Save Package";
       document.getElementById("cancelPkgEditBtn").classList.add("hidden");
@@ -1556,7 +1622,7 @@
       });
     }
 
-    /* ------------------- STATUS & CACHE UTILITIES ------------------- */
+    /* ------------------- HELPERS ------------------- */
     function setSyncStatus(text, color) {
       const el = document.getElementById("syncStatus");
       if (!el) return;
