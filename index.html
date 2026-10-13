@@ -1,4 +1,4 @@
-<!-- VER 5.0 -->
+<!-- VER 6.0 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -594,6 +594,14 @@
     function parseDateToISO(raw) {
       if (!raw) return '';
       let str = String(raw).replace(/^'+/, '').trim();
+      if (!str) return '';
+
+      // 1. If it's already ISO format (YYYY-MM-DD)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        return str;
+      }
+
+      // 2. Handle DD/MM/YYYY or MM/DD/YYYY or YYYY/MM/DD with slashes
       if (str.includes('/')) {
         const p = str.split('/');
         if (p.length === 3) {
@@ -601,6 +609,18 @@
           if (p[0].length === 4) return `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}`;
         }
       }
+
+      // 3. Handle textual dates like "8 Oct 2026", "08-Oct-2026", "October 8, 2026", or Apps Script date strings
+      const parsed = Date.parse(str);
+      if (!isNaN(parsed)) {
+        const d = new Date(parsed);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+      // Fallback: strip time if timestamp format like "2026-10-08T..."
       return str.split('T')[0];
     }
 
@@ -1482,7 +1502,11 @@
       const pkg = packages.find(x => String(x.id) === String(id));
       if (!pkg) return;
       document.getElementById("editPkgId").value = pkg.id;
-      document.getElementById("pkgDate").value = parseDateToISO(pkg.date);
+      document.getElementById("pkgDate").value = parseDateToISO(pkg.date);      
+      if (pkg.receivedDate) {
+        document.getElementById("pkgReceivedDate").value = parseDateToISO(pkg.receivedDate);
+      }
+      
       document.getElementById("pkgShop").value = pkg.shop === '-' ? '' : (pkg.shop || '');
       document.getElementById("pkgDesc").value = pkg.itemDescription;
       document.getElementById("pkgTracking").value = pkg.trackingNumber;
