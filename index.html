@@ -1,1454 +1,1575 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Expense & Package Manager</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense & Package Manager</title>
+  
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" type="image/png" href="minimalist-indigo-icon.png" />
+  <link rel="apple-touch-icon" href="minimalist-indigo-icon.png" />
 
-<link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#4f46e5" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<link rel="icon" type="image/png" href="minimalist-indigo-icon.png" />
-<link rel="apple-touch-icon" href="minimalist-indigo-icon.png" />
-
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-</style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    /* Hide scrollbars on horizontal scroll tabs while preserving touch scrolling */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
-<div class="max-w-5xl mx-auto p-4 sm:p-6 pb-20">
-<!-- Header -->
-<header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-6">
-<div>
-<h1 class="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-<i class="fa-solid fa-wallet text-indigo-600"></i> Expense & Package Manager
-</h1>
-<p class="text-xs sm:text-sm text-slate-500 mt-1">
-Connected to Google Sheets &bull; Base Currency: <span class="font-semibold text-slate-700">ILS (₪)</span>
-</p>
-</div>
-<div class="flex items-center gap-2 self-start sm:self-auto">
-<button id="pwaInstallBtn" onclick="installPWA()" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition">
-<i class="fa-solid fa-download"></i> Install App
-</button>
-<div id="syncStatus" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-<span>Ready</span>
-</div>
-</div>
-</header>
+  <div class="max-w-5xl mx-auto p-4 sm:p-6 pb-20">
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-wallet text-indigo-600"></i> Expense & Package Manager
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          Connected to Google Sheets &bull; Base Currency: <span class="font-semibold text-slate-700">ILS (₪)</span>
+        </p>
+      </div>
+      <div class="flex items-center gap-2 self-start sm:self-auto">
+        <button id="pwaInstallBtn" onclick="installPWA()" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition">
+          <i class="fa-solid fa-download"></i> Install App
+        </button>
+        <div id="syncStatus" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>Ready</span>
+        </div>
+      </div>
+    </header>
 
-<!-- Navigation Tabs -->
-<nav class="flex space-x-2 border-b border-slate-200 mb-6 overflow-x-auto pb-1 text-sm font-medium">
-<button onclick="switchTab('expenses')" id="tab-expenses" class="tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap">
-<i class="fa-solid fa-receipt"></i> Expenses
-</button>
-<button onclick="switchTab('analytics')" id="tab-analytics" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
-<i class="fa-solid fa-chart-pie"></i> Analytics & Stats
-</button>
-<button onclick="switchTab('packages')" id="tab-packages" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
-<i class="fa-solid fa-box"></i> Package Tracker
-</button>
-<button onclick="switchTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
-<i class="fa-solid fa-gear"></i> Cards & Settings
-</button>
-</nav>
+    <!-- Navigation Tabs -->
+    <nav class="flex space-x-2 border-b border-slate-200 mb-6 overflow-x-auto pb-1 text-sm font-medium no-scrollbar">
+      <button onclick="switchTab('expenses')" id="tab-expenses" class="tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-receipt"></i> Expenses
+      </button>
+      <button onclick="switchTab('analytics')" id="tab-analytics" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-chart-pie"></i> Analytics & Stats
+      </button>
+      <button onclick="switchTab('packages')" id="tab-packages" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-box"></i> Package Tracker
+      </button>
+      <button onclick="switchTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-gear"></i> Cards & Settings
+      </button>
+    </nav>
 
-<!-- Main Content Area -->
-<main>
-<!-- TAB 1: EXPENSES -->
-<section id="view-expenses" class="space-y-6">
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-<div class="flex items-center justify-between mb-4">
-<h2 id="formHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
-<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense
-</h2>
-<button type="button" id="cancelEditBtn" onclick="cancelExpenseEdit()" class="hidden text-xs text-rose-500 hover:underline">
-<i class="fa-solid fa-xmark"></i> Cancel Edit
-</button>
-</div>
+    <!-- Main Content Area -->
+    <main>
+      <!-- TAB 1: EXPENSES -->
+      <section id="view-expenses" class="space-y-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="formHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense
+            </h2>
+            <button type="button" id="cancelEditBtn" onclick="cancelExpenseEdit()" class="hidden text-xs text-rose-500 hover:underline">
+              <i class="fa-solid fa-xmark"></i> Cancel Edit
+            </button>
+          </div>
 
-<form id="expenseForm" onsubmit="handleExpenseSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-<input type="hidden" id="editExpId" value="" />
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Date</label>
-<input type="date" id="expDate" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
-<input type="text" id="expDesc" placeholder="e.g. Grocery Store, Coffee" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Amount & Currency</label>
-<div class="flex gap-2">
-<input type="number" step="0.01" id="expAmount" placeholder="0.00" required class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-<select id="expCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
-<option value="ILS">₪ ILS</option>
-<option value="USD">$ USD</option>
-<option value="EUR">€ EUR</option>
-</select>
-</div>
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Category</label>
-              <select id="expCategory" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+          <form id="expenseForm" onsubmit="handleExpenseSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <input type="hidden" id="editExpId" value="" />
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Date</label>
+              <input type="date" id="expDate" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
+              <input type="text" id="expDesc" placeholder="e.g. Grocery Store, Coffee" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Amount & Currency</label>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="expAmount" placeholder="0.00" required class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="expCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="ILS">₪ ILS</option>
+                  <option value="USD">$ USD</option>
+                  <option value="EUR">€ EUR</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Category</label>
               <select id="expCategory" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
-<option value="Education">Education</option>
-<option value="Health">Health</option>
-<option value="Shopping">Shopping</option>
-<option value="Vacation">Vacation</option>
-<option value="Groceries">Groceries</option>
-<option value="Dining Out">Dining Out</option>
-<option value="Utilities">Utilities & Bills</option>
-<option value="Cars">Cars</option>
-<option value="Bikes">Bikes</option>
-<option value="General">General</option>
-</select>
-</div>
-<div>
-<div class="flex items-center justify-between mb-1">
-<label class="block text-xs font-medium text-slate-600">Card / Account Nickname</label>
-<button type="button" onclick="switchTab('settings')" class="text-[11px] text-indigo-600 hover:underline">+ Manage</button>
-</div>
-<select id="expCard" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
-<option value="Default Card">Loading cards...</option>
-</select>
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Payment Method</label>
-<select id="expMethod" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
-<option value="Credit Card">Credit Card</option>
-<option value="Debit Card">Debit Card</option>
-<option value="Bank Transfer">Bank Transfer / Hora'at Keva</option>
-<option value="Cash / Bit">Cash / Bit</option>
-</select>
-</div>
+                <option value="Education">Education</option>
+                <option value="Health">Health</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Vacation">Vacation</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Dining Out">Dining Out</option>
+                <option value="Utilities">Utilities & Bills</option>
+                <option value="Cars">Cars</option>
+                <option value="Bikes">Bikes</option>
+                <option value="General">General</option>
+              </select>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-600">Card / Account Nickname</label>
+                <button type="button" onclick="switchTab('settings')" class="text-[11px] text-indigo-600 hover:underline">+ Manage</button>
+              </div>
+              <select id="expCard" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                <option value="Default Card">Loading cards...</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Payment Method</label>
+              <select id="expMethod" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+                <option value="Credit Card">Credit Card</option>
+                <option value="Debit Card">Debit Card</option>
+                <option value="Bank Transfer">Bank Transfer / Hora'at Keva</option>
+                <option value="Cash / Bit">Cash / Bit</option>
+              </select>
+            </div>
+            
+            <!-- Monthly recurring highlight checkbox -->
+            <div class="sm:col-span-2 md:col-span-3 flex items-center justify-between border-t border-slate-100 pt-3">
+              <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
+                <input type="checkbox" id="expIsRecurring" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+                <span class="ml-2 font-semibold text-indigo-700 flex items-center gap-1.5">
+                  <i class="fa-solid fa-repeat"></i> Mark as Monthly Recurring Payment
+                </span>
+                <span class="ml-2 text-[11px] text-slate-400 font-normal hidden sm:inline">(Highlights item for tracking month-to-month)</span>
+              </label>
 
-<!-- Monthly recurring flag -->
-<div class="sm:col-span-2 md:col-span-3 flex items-center justify-between border-t border-slate-100 pt-3">
-<label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
-<input type="checkbox" id="expIsRecurring" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
-<span class="ml-2 font-semibold text-indigo-700 flex items-center gap-1.5">
-<i class="fa-solid fa-repeat"></i> Mark as Monthly Recurring Payment
-</span>
-<span class="ml-2 text-[11px] text-slate-400 font-normal">(Highlights item for tracking month-to-month)</span>
-</label>
+              <button type="submit" id="expSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>
+              </button>
+            </div>
+          </form>
+        </div>
 
-<button type="submit" id="expSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
-<i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>
-</button>
-</div>
-</form>
-</div>
+        <!-- Monthly Filter -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-100 p-3 rounded-xl border border-slate-200">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-calendar text-slate-500 text-sm"></i>
+            <span class="text-xs font-semibold text-slate-700">Filter Month:</span>
+            <select id="monthFilter" onchange="renderExpenses(); renderAnalytics();" class="text-xs font-medium rounded-lg border-slate-300 border py-1 px-2 bg-white">
+              <option value="ALL">All Time</option>
+            </select>
+          </div>
+          <span id="monthSummaryBadge" class="text-xs font-medium text-slate-600">Showing all transactions</span>
+        </div>
 
-<!-- Monthly Filter -->
-<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-100 p-3 rounded-xl border border-slate-200">
-<div class="flex items-center gap-2">
-<i class="fa-solid fa-calendar text-slate-500 text-sm"></i>
-<span class="text-xs font-semibold text-slate-700">Filter Month:</span>
-<select id="monthFilter" onchange="renderExpenses(); renderAnalytics();" class="text-xs font-medium rounded-lg border-slate-300 border py-1 px-2 bg-white">
-<option value="ALL">All Time</option>
-</select>
-</div>
-<span id="monthSummaryBadge" class="text-xs font-medium text-slate-600">Showing all transactions</span>
-</div>
+        <!-- Summary Totals -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">Filtered Spend</span>
+            <span id="totalSpend" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">Filtered Transactions</span>
+            <span id="txCount" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">0</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-500 block">Live FX Rates (to ILS)</span>
+              <span id="fxBadge" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">Loading...</span>
+            </div>
+            <div class="mt-2 space-y-1">
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>1 USD ($)</span>
+                <span class="font-bold text-slate-900">₪<span id="fxUsdRate">3.70</span></span>
+              </div>
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>1 EUR (€)</span>
+                <span class="font-bold text-slate-900">₪<span id="fxEurRate">4.00</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-<!-- Summary Totals -->
-<div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-<div class="bg-white p-4 rounded-xl border border-slate-200">
-<span class="text-xs font-medium text-slate-500 block">Filtered Spend</span>
-<span id="totalSpend" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">₪0.00</span>
-</div>
-<div class="bg-white p-4 rounded-xl border border-slate-200">
-<span class="text-xs font-medium text-slate-500 block">Filtered Transactions</span>
-<span id="txCount" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">0</span>
-</div>
-<div class="bg-white p-4 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
-<div class="flex items-center justify-between">
-<span class="text-xs font-medium text-slate-500 block">Live FX Rates (to ILS)</span>
-<span id="fxBadge" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">Loading...</span>
-</div>
-<div class="mt-2 space-y-1">
-<div class="flex justify-between text-xs font-medium text-slate-700">
-<span>1 USD ($)</span>
-<span class="font-bold text-slate-900">₪<span id="fxUsdRate">3.70</span></span>
-</div>
-<div class="flex justify-between text-xs font-medium text-slate-700">
-<span>1 EUR (€)</span>
-<span class="font-bold text-slate-900">₪<span id="fxEurRate">4.00</span></span>
-</div>
-</div>
-</div>
-</div>
+        <!-- Transactions List -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">Transactions (Sorted by Date &bull; Newest First)</h3>
+            <button onclick="fetchExpenses()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3">Date</th>
+                  <th class="p-3">Description</th>
+                  <th class="p-3">Card / Account</th>
+                  <th class="p-3">Category</th>
+                  <th class="p-3 text-right">Original</th>
+                  <th class="p-3 text-right">ILS (₪)</th>
+                  <th class="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="expensesTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="7" class="p-8 text-center text-slate-400">Loading expenses...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-<!-- Transactions List -->
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-<div class="p-4 border-b border-slate-100 flex items-center justify-between">
-<h3 class="text-sm font-semibold text-slate-800">Transactions (Sorted by Date)</h3>
-<button onclick="fetchExpenses()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
-<i class="fa-solid fa-arrows-rotate"></i> Refresh
-</button>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full text-left text-xs sm:text-sm">
-<thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-<tr>
-<th class="p-3">Date</th>
-<th class="p-3">Description</th>
-<th class="p-3">Card / Account</th>
-<th class="p-3">Category</th>
-<th class="p-3 text-right">Original</th>
-<th class="p-3 text-right">ILS (₪)</th>
-<th class="p-3 text-center">Actions</th>
-</tr>
-</thead>
-<tbody id="expensesTableBody" class="divide-y divide-slate-100 text-slate-700">
-<tr><td colspan="7" class="p-8 text-center text-slate-400">Loading expenses...</td></tr>
-</tbody>
-</table>
-</div>
-</div>
-</section>
+      <!-- TAB 2: ANALYTICS & STATS -->
+      <section id="view-analytics" class="hidden space-y-6">
+        <!-- Top KPI Metric Badges -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-medium text-slate-500 block truncate">Total Spend</span>
+            <span id="statTotalSpend" class="text-base sm:text-lg font-bold text-slate-900 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/20 shadow-sm">
+            <span class="text-[11px] font-medium text-emerald-700 block truncate flex items-center gap-1">
+              <i class="fa-solid fa-repeat text-[10px]"></i> Recurring
+            </span>
+            <span id="statRecurringSpend" class="text-base sm:text-lg font-bold text-emerald-700 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-3.5 rounded-xl border border-sky-200 bg-sky-50/20 shadow-sm">
+            <span class="text-[11px] font-medium text-sky-700 block truncate flex items-center gap-1">
+              <i class="fa-solid fa-box text-[10px]"></i> Packages
+            </span>
+            <span id="statPackagesSpend" class="text-base sm:text-lg font-bold text-sky-700 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-medium text-slate-500 block truncate">Avg Ticket</span>
+            <span id="statAvgTicket" class="text-base sm:text-lg font-bold text-slate-900 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-medium text-slate-500 block truncate">Top Category</span>
+            <span id="statTopCat" class="text-xs sm:text-sm font-bold text-slate-800 mt-1 block truncate">-</span>
+          </div>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-medium text-slate-500 block truncate">Most Used Card</span>
+            <span id="statTopCard" class="text-xs sm:text-sm font-bold text-slate-800 mt-1 block truncate">-</span>
+          </div>
+        </div>
 
-<!-- TAB 2: ANALYTICS & STATS -->
-<section id="view-analytics" class="hidden space-y-6">
-<div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-<span class="text-xs font-medium text-slate-500 block">Avg Ticket</span>
-<span id="statAvgTicket" class="text-lg sm:text-xl font-bold text-slate-900 mt-1 block">₪0.00</span>
-</div>
-<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-<span class="text-xs font-medium text-slate-500 block">Largest Single Expense</span>
-<span id="statMaxExpense" class="text-lg sm:text-xl font-bold text-indigo-600 mt-1 block">₪0.00</span>
-</div>
-<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-<span class="text-xs font-medium text-slate-500 block">Top Category</span>
-<span id="statTopCat" class="text-sm sm:text-base font-bold text-slate-800 mt-1 block truncate">-</span>
-</div>
-<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-<span class="text-xs font-medium text-slate-500 block">Most Used Card</span>
-<span id="statTopCard" class="text-sm sm:text-base font-bold text-slate-800 mt-1 block truncate">-</span>
-</div>
-</div>
+        <!-- Monthly Spend Stacked Bar (Standard vs Recurring) -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-chart-column text-indigo-500"></i> Monthly Spend: Standard vs Recurring (₪ ILS)
+            </h3>
+            <div class="flex items-center gap-3 text-xs font-medium">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Standard</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Monthly Recurring</span>
+            </div>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="monthlyTrendChart"></canvas>
+          </div>
+        </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-<h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-<i class="fa-solid fa-chart-column text-indigo-500"></i> Monthly Spend Overview (₪ ILS)
-</h3>
-<div class="h-64 relative">
-<canvas id="monthlyTrendChart"></canvas>
-</div>
-</div>
+        <!-- Monthly Package / Online Shopping Spend Trend -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-box text-sky-500"></i> Online Shopping & Packages Spend per Month (₪ ILS)
+            </h3>
+            <span class="text-xs text-slate-400 font-mono">From Package Tracker records</span>
+          </div>
+          <div class="h-56 relative">
+            <canvas id="packagesTrendChart"></canvas>
+          </div>
+        </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-<h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-<i class="fa-solid fa-chart-pie text-emerald-500"></i> Spend by Category
-</h3>
-<div class="h-56 relative flex justify-center">
-<canvas id="categoryChart"></canvas>
-</div>
-</div>
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-<h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-<i class="fa-solid fa-credit-card text-sky-500"></i> Spend by Card / Account
-</h3>
-<div class="h-56 relative flex justify-center">
-<canvas id="cardChart"></canvas>
-</div>
-</div>
-</div>
+        <!-- Doughnut Charts (Category & Card Breakdown) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-chart-pie text-emerald-500"></i> Spend by Category
+            </h3>
+            <div class="h-56 relative flex justify-center">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-credit-card text-sky-500"></i> Spend by Card / Account
+            </h3>
+            <div class="h-56 relative flex justify-center">
+              <canvas id="cardChart"></canvas>
+            </div>
+          </div>
+        </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-<div class="p-4 border-b border-slate-100">
-<h3 class="text-sm font-semibold text-slate-800">Card Utilization Breakdown</h3>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full text-left text-xs sm:text-sm">
-<thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-<tr>
-<th class="p-3">Card Nickname</th>
-<th class="p-3 text-center">Transactions</th>
-<th class="p-3 text-right">Total Charged</th>
-<th class="p-3 text-right">Share of Total</th>
-</tr>
-</thead>
-<tbody id="cardStatsTableBody" class="divide-y divide-slate-100 text-slate-700">
-<tr><td colspan="4" class="p-4 text-center text-slate-400">No data available.</td></tr>
-</tbody>
-</table>
-</div>
-</div>
-</section>
+        <!-- Card Breakdown Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100">
+            <h3 class="text-sm font-semibold text-slate-800">Card Utilization Breakdown</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3">Card Nickname</th>
+                  <th class="p-3 text-center">Transactions</th>
+                  <th class="p-3 text-right">Total Charged</th>
+                  <th class="p-3 text-right">Share of Total</th>
+                </tr>
+              </thead>
+              <tbody id="cardStatsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="4" class="p-4 text-center text-slate-400">No data available.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-<!-- TAB 3: PACKAGES -->
-<section id="view-packages" class="space-y-6 hidden">
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-<div class="flex items-center justify-between mb-4">
-<h2 id="pkgFormHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
-<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order
-</h2>
-<button type="button" id="cancelPkgEditBtn" onclick="cancelPackageEdit()" class="hidden text-xs text-rose-500 hover:underline">
-<i class="fa-solid fa-xmark"></i> Cancel Edit
-</button>
-</div>
+      <!-- TAB 3: PACKAGES -->
+      <section id="view-packages" class="space-y-6 hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="pkgFormHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order
+            </h2>
+            <button type="button" id="cancelPkgEditBtn" onclick="cancelPackageEdit()" class="hidden text-xs text-rose-500 hover:underline">
+              <i class="fa-solid fa-xmark"></i> Cancel Edit
+            </button>
+          </div>
 
-<form id="packageForm" onsubmit="handlePackageSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-<input type="hidden" id="editPkgId" value="" />
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Purchase Date</label>
-<input type="date" id="pkgDate" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Shop / Store</label>
-<input type="text" id="pkgShop" placeholder="e.g. Amazon, AliExpress, eBay" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Item Description</label>
-<input type="text" id="pkgDesc" placeholder="e.g. Mechanical Keyboard" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Tracking / Order Number</label>
-<input type="text" id="pkgTracking" placeholder="e.g. TBA1234567" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono" />
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Forwarder / Carrier</label>
-<select id="pkgForwarder" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
-<option value="RedBox">RedBox</option>
-<option value="Dealtas">Dealtas</option>
-<option value="UShops">UShops (USA/UK)</option>
-<option value="Buy2USA">Buy2USA</option>
-<option value="Direct Shipping">Direct Shipping (Amazon / AliExpress)</option>
-<option value="Shipito">Shipito</option>
-<option value="Israel Post">Israel Post / Doar</option>
-<option value="DHL / FedEx / UPS">DHL / FedEx / UPS</option>
-<option value="Other">Other Forwarder</option>
-</select>
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Current Status</label>
-<select id="pkgStatus" onchange="handleStatusChange(this.value)" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
-<option value="Ordered">Ordered / Awaiting Warehouse</option>
-<option value="Received at US Hub">Received at Forwarder Hub</option>
-<option value="In Transit to IL">In Transit to Israel</option>
-<option value="Customs Clearance">Customs Clearance</option>
-<option value="Out for Delivery">Out for Delivery</option>
-<option value="Delivered">Delivered</option>
-</select>
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Item Purchase Cost</label>
-<div class="flex gap-2">
-<input type="number" step="0.01" id="pkgCost" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-<select id="pkgCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
-<option value="USD">$ USD</option>
-<option value="ILS">₪ ILS</option>
-<option value="EUR">€ EUR</option>
-</select>
-</div>
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Forwarder Shipping Fee</label>
-<div class="flex gap-2">
-<input type="number" step="0.01" id="pkgShippingFee" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-<select id="pkgShippingCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
-<option value="USD">$ USD</option>
-<option value="ILS">₪ ILS</option>
-</select>
-</div>
-</div>
-<div class="flex items-center gap-3 pt-5">
-<label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
-<input type="checkbox" id="pkgIsReceived" onchange="toggleReceivedCheck(this.checked)" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
-<span class="ml-2 font-semibold text-emerald-700">Package Received?</span>
-</label>
-<div id="receivedDateBox" class="hidden flex-1">
-<input type="date" id="pkgReceivedDate" class="w-full text-xs rounded-lg border-slate-300 border p-1.5 focus:ring-1 focus:ring-indigo-500" />
-</div>
-</div>
-<div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2">
-<button type="submit" id="pkgSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
-<i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>
-</button>
-</div>
-</form>
-</div>
+          <form id="packageForm" onsubmit="handlePackageSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <input type="hidden" id="editPkgId" value="" />
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Purchase Date</label>
+              <input type="date" id="pkgDate" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Shop / Store</label>
+              <input type="text" id="pkgShop" placeholder="e.g. Amazon, AliExpress, eBay" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Item Description</label>
+              <input type="text" id="pkgDesc" placeholder="e.g. Mechanical Keyboard" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Tracking / Order Number</label>
+              <input type="text" id="pkgTracking" placeholder="e.g. TBA1234567" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder / Carrier</label>
+              <select id="pkgForwarder" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                <option value="RedBox">RedBox</option>
+                <option value="Dealtas">Dealtas</option>
+                <option value="UShops">UShops (USA/UK)</option>
+                <option value="Buy2USA">Buy2USA</option>
+                <option value="Direct Shipping">Direct Shipping (Amazon / AliExpress)</option>
+                <option value="Shipito">Shipito</option>
+                <option value="Israel Post">Israel Post / Doar</option>
+                <option value="DHL / FedEx / UPS">DHL / FedEx / UPS</option>
+                <option value="Other">Other Forwarder</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Current Status</label>
+              <select id="pkgStatus" onchange="handleStatusChange(this.value)" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+                <option value="Ordered">Ordered / Awaiting Warehouse</option>
+                <option value="Received at US Hub">Received at Forwarder Hub</option>
+                <option value="In Transit to IL">In Transit to Israel</option>
+                <option value="Customs Clearance">Customs Clearance</option>
+                <option value="Out for Delivery">Out for Delivery</option>
+                <option value="Delivered">Delivered</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Item Purchase Cost</label>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="pkgCost" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="pkgCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="USD">$ USD</option>
+                  <option value="ILS">₪ ILS</option>
+                  <option value="EUR">€ EUR</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder Shipping Fee</label>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="pkgShippingFee" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="pkgShippingCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="USD">$ USD</option>
+                  <option value="ILS">₪ ILS</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 pt-5">
+              <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
+                <input type="checkbox" id="pkgIsReceived" onchange="toggleReceivedCheck(this.checked)" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+                <span class="ml-2 font-semibold text-emerald-700">Package Received?</span>
+              </label>
+              <div id="receivedDateBox" class="hidden flex-1">
+                <input type="date" id="pkgReceivedDate" class="w-full text-xs rounded-lg border-slate-300 border p-1.5 focus:ring-1 focus:ring-indigo-500" />
+              </div>
+            </div>
+            <div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2">
+              <button type="submit" id="pkgSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>
+              </button>
+            </div>
+          </form>
+        </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-<div class="p-4 border-b border-slate-100 flex items-center justify-between">
-<h3 class="text-sm font-semibold text-slate-800">Tracked Packages</h3>
-<button onclick="fetchPackages()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
-<i class="fa-solid fa-arrows-rotate"></i> Refresh
-</button>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full text-left text-xs sm:text-sm">
-<thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-<tr>
-<th class="p-3 text-center">Recv</th>
-<th class="p-3">Order Date</th>
-<th class="p-3">Shop</th>
-<th class="p-3">Item</th>
-<th class="p-3">Carrier / Tracking</th>
-<th class="p-3">Status / Recv Date</th>
-<th class="p-3 text-right">Item Cost</th>
-<th class="p-3 text-right">Shipping Fee</th>
-<th class="p-3 text-right">Total Landed (₪)</th>
-<th class="p-3 text-center">Actions</th>
-</tr>
-</thead>
-<tbody id="packagesTableBody" class="divide-y divide-slate-100 text-slate-700">
-<tr><td colspan="10" class="p-8 text-center text-slate-400">Loading packages...</td></tr>
-</tbody>
-</table>
-</div>
-</div>
-</section>
+        <!-- Tracked Packages Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">Tracked Packages</h3>
+            <button onclick="fetchPackages()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3 text-center">Recv</th>
+                  <th class="p-3">Order Date</th>
+                  <th class="p-3">Shop</th>
+                  <th class="p-3">Item</th>
+                  <th class="p-3">Carrier / Tracking</th>
+                  <th class="p-3">Status / Recv Date</th>
+                  <th class="p-3 text-right">Item Cost</th>
+                  <th class="p-3 text-right">Shipping Fee</th>
+                  <th class="p-3 text-right">Total Landed (₪)</th>
+                  <th class="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="packagesTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="10" class="p-8 text-center text-slate-400">Loading packages...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-<!-- TAB 4: CARDS & SETTINGS -->
-<section id="view-settings" class="hidden space-y-6">
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
-<div class="flex items-center justify-between border-b border-slate-100 pb-3">
-<div>
-<h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-<i class="fa-regular fa-credit-card text-indigo-500"></i> Manage Card Nicknames
-</h2>
-<p class="text-xs text-slate-500 mt-0.5">Saved to your Google Sheet <code>Cards</code> tab.</p>
-</div>
-<button onclick="fetchCards()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
-<i class="fa-solid fa-arrows-rotate"></i> Reload Cards
-</button>
-</div>
+      <!-- TAB 4: CARDS & SETTINGS -->
+      <section id="view-settings" class="hidden space-y-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                <i class="fa-regular fa-credit-card text-indigo-500"></i> Manage Card Nicknames
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Saved directly to your Google Sheet <code>Cards</code> tab.</p>
+            </div>
+            <button onclick="fetchCards()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Reload Cards
+            </button>
+          </div>
 
-<form id="cardForm" onsubmit="handleNewCard(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-<div>
-<label class="block text-[11px] font-medium text-slate-600 mb-1">Nickname</label>
-<input type="text" id="cardNickname" placeholder="e.g. Max Executive" required class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
-</div>
-<div>
-<label class="block text-[11px] font-medium text-slate-600 mb-1">Issuer / Type</label>
-<input type="text" id="cardIssuer" placeholder="e.g. Max, Cal, Isracard" required class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
-</div>
-<div>
-<label class="block text-[11px] font-medium text-slate-600 mb-1">Billing Day (1-31)</label>
-<input type="number" min="1" max="31" id="cardBillingDay" placeholder="e.g. 10" class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
-</div>
-<div class="flex items-end">
-<button type="submit" id="addCardBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs py-2 px-3 rounded shadow-sm transition flex items-center justify-center gap-1">
-<i class="fa-solid fa-plus"></i> Save Card
-</button>
-</div>
-</form>
+          <form id="cardForm" onsubmit="handleNewCard(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Nickname</label>
+              <input type="text" id="cardNickname" placeholder="e.g. Max Executive" required class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Issuer / Type</label>
+              <input type="text" id="cardIssuer" placeholder="e.g. Max, Cal, Isracard" required class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Billing Day (1-31)</label>
+              <input type="number" min="1" max="31" id="cardBillingDay" placeholder="e.g. 10" class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div class="flex items-end">
+              <button type="submit" id="addCardBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs py-2 px-3 rounded shadow-sm transition flex items-center justify-center gap-1">
+                <i class="fa-solid fa-plus"></i> Save Card
+              </button>
+            </div>
+          </form>
 
-<div class="overflow-x-auto">
-<table class="w-full text-left text-xs">
-<thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-<tr>
-<th class="p-2.5">Card Nickname</th>
-<th class="p-2.5">Issuer</th>
-<th class="p-2.5">Billing Day</th>
-<th class="p-2.5 text-center">Action</th>
-</tr>
-</thead>
-<tbody id="cardsTableBody" class="divide-y divide-slate-100 text-slate-700">
-<tr><td colspan="4" class="p-4 text-center text-slate-400">Loading cards...</td></tr>
-</tbody>
-</table>
-</div>
-</div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-2.5">Card Nickname</th>
+                  <th class="p-2.5">Issuer</th>
+                  <th class="p-2.5">Billing Day</th>
+                  <th class="p-2.5 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="cardsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="4" class="p-4 text-center text-slate-400">Loading cards...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
-<div class="flex items-center justify-between border-b border-slate-100 pb-3">
-<div>
-<h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-<i class="fa-solid fa-cloud-arrow-up text-indigo-500"></i> Backend Connection
-</h2>
-<p class="text-xs text-slate-500 mt-0.5">Google Apps Script Web App URL.</p>
-</div>
-</div>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up text-indigo-500"></i> Backend Connection
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Google Apps Script Web App Deployment URL.</p>
+            </div>
+          </div>
 
-<div>
-<label class="block text-xs font-medium text-slate-600 mb-1">Web App URL</label>
-<div class="flex gap-2">
-<input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full text-xs font-mono rounded-lg border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
-<button onclick="saveCustomScriptUrl()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg shadow-sm whitespace-nowrap">
-Save URL
-</button>
-</div>
-</div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Active Web App URL</label>
+            <div class="flex gap-2">
+              <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full text-xs font-mono rounded-lg border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+              <button onclick="saveCustomScriptUrl()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg shadow-sm whitespace-nowrap">
+                Save URL
+              </button>
+            </div>
+          </div>
 
-<div class="pt-3 border-t border-slate-200 flex flex-wrap gap-3 items-center justify-between">
-<div class="flex gap-2">
-<button onclick="resetDefaultScriptUrl()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">
-Reset to Default
-</button>
-<button onclick="clearLocalStorage()" class="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-medium rounded-lg border border-rose-200">
-<i class="fa-solid fa-trash"></i> Wipe Local Cache
-</button>
-</div>
-<button onclick="fetchAll()" class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
-<i class="fa-solid fa-arrows-rotate"></i> Force Refresh All
-</button>
-</div>
-</div>
-</section>
-</main>
-</div>
+          <div class="pt-3 border-t border-slate-200 flex flex-wrap gap-3 items-center justify-between">
+            <div class="flex gap-2">
+              <button onclick="resetDefaultScriptUrl()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">
+                Reset to Default
+              </button>
+              <button onclick="clearLocalStorage()" class="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-medium rounded-lg border border-rose-200">
+                <i class="fa-solid fa-trash"></i> Wipe Local Cache
+              </button>
+            </div>
+            <button onclick="fetchAll()" class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
+              <i class="fa-solid fa-arrows-rotate"></i> Force Refresh All
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
-<script>
-    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
-    // ==========================================
-    // LINE 372: PASTE YOUR SCRIPT EXEC URL HERE:
-    // ==========================================
+  <script>
+    // Hardcoded Active Google Apps Script Web App Deployment URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
 
     function getScriptUrl() {
       return localStorage.getItem("customScriptUrl") || SCRIPT_URL;
     }
 
-const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
+    const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
 
-let expenses = [];
-let packages = [];
-let cards = [];
-let trendChartInstance = null;
-let categoryChartInstance = null;
-let cardChartInstance = null;
-let deferredPrompt = null;
+    let expenses = [];
+    let packages = [];
+    let cards = [];
+    let trendChartInstance = null;
+    let packagesChartInstance = null;
+    let categoryChartInstance = null;
+    let cardChartInstance = null;
+    let deferredPrompt = null;
 
-    function getScriptUrl() {
-      return localStorage.getItem("customScriptUrl") || DEFAULT_SCRIPT_URL;
+    function saveCustomScriptUrl() {
+      const input = document.getElementById("scriptUrlInput").value.trim();
+      if (!input) return alert("Please enter a valid URL.");
+      localStorage.setItem("customScriptUrl", input);
+      alert("Backend URL saved!");
+      fetchAll();
     }
 
-function saveCustomScriptUrl() {
-const input = document.getElementById("scriptUrlInput").value.trim();
-if (!input) return alert("Please enter a valid URL.");
-localStorage.setItem("customScriptUrl", input);
-alert("Backend URL saved!");
-fetchAll();
-}
-
-function resetDefaultScriptUrl() {
-localStorage.removeItem("customScriptUrl");
-      document.getElementById("scriptUrlInput").value = DEFAULT_SCRIPT_URL;
+    function resetDefaultScriptUrl() {
+      localStorage.removeItem("customScriptUrl");
       document.getElementById("scriptUrlInput").value = SCRIPT_URL;
-alert("Reset to default backend.");
-fetchAll();
-}
+      alert("Reset to default backend.");
+      fetchAll();
+    }
 
-if ('serviceWorker' in navigator) {
-navigator.serviceWorker.register('./sw.js').catch(e => console.warn(e));
-}
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(e => console.warn(e));
+    }
 
-window.addEventListener('beforeinstallprompt', (e) => {
-e.preventDefault();
-deferredPrompt = e;
-const btn = document.getElementById('pwaInstallBtn');
-if (btn) btn.classList.remove('hidden');
-});
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('pwaInstallBtn');
+      if (btn) btn.classList.remove('hidden');
+    });
 
-async function installPWA() {
-if (deferredPrompt) {
-deferredPrompt.prompt();
-deferredPrompt = null;
-}
-}
+    async function installPWA() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt = null;
+      }
+    }
 
-function parseDateToISO(raw) {
-if (!raw) return '';
-let str = String(raw).replace(/^'+/, '').trim();
-if (str.includes('/')) {
-const p = str.split('/');
-if (p.length === 3) {
-if (p[2].length === 4) return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
-if (p[0].length === 4) return `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}`;
-}
-}
-return str.split('T')[0];
-}
+    function parseDateToISO(raw) {
+      if (!raw) return '';
+      let str = String(raw).replace(/^'+/, '').trim();
+      if (str.includes('/')) {
+        const p = str.split('/');
+        if (p.length === 3) {
+          if (p[2].length === 4) return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+          if (p[0].length === 4) return `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}`;
+        }
+      }
+      return str.split('T')[0];
+    }
 
+    // Sort descending by date (newest first)
     function sortExpensesDescending() {
       expenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     }
 
-document.addEventListener("DOMContentLoaded", () => {
-const todayISO = new Date().toISOString().split('T')[0];
-const dateEl = document.getElementById("expDate");
-if (dateEl) dateEl.value = todayISO;
-const pkgDateEl = document.getElementById("pkgDate");
-if (pkgDateEl) pkgDateEl.value = todayISO;
+    document.addEventListener("DOMContentLoaded", () => {
+      const todayISO = new Date().toISOString().split('T')[0];
+      const dateEl = document.getElementById("expDate");
+      if (dateEl) dateEl.value = todayISO;
+      const pkgDateEl = document.getElementById("pkgDate");
+      if (pkgDateEl) pkgDateEl.value = todayISO;
+      
+      const scriptInput = document.getElementById("scriptUrlInput");
+      if (scriptInput) scriptInput.value = getScriptUrl();
 
-const scriptInput = document.getElementById("scriptUrlInput");
-if (scriptInput) scriptInput.value = getScriptUrl();
+      try {
+        expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
+        packages = JSON.parse(localStorage.getItem("packages") || "[]");
+        cards = JSON.parse(localStorage.getItem("cards") || "[]");
+        sortExpensesDescending();
+        populateCardDropdown();
+        renderCardsTable();
+        updateMonthFilterOptions();
+        renderExpenses();
+        renderPackages();
+      } catch (e) {
+        console.warn("Cache load error:", e);
+      }
 
-try {
-expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
-packages = JSON.parse(localStorage.getItem("packages") || "[]");
-cards = JSON.parse(localStorage.getItem("cards") || "[]");
-sortExpensesDescending();
-populateCardDropdown();
-renderCardsTable();
-updateMonthFilterOptions();
-renderExpenses();
-renderPackages();
-} catch (e) {
-console.warn("Cache load error:", e);
-}
+      fetchAll();
+    });
 
-fetchAll();
-});
+    function fetchAll() {
+      fetchLiveRates();
+      fetchCards();
+      fetchExpenses();
+      fetchPackages();
+    }
 
-function fetchAll() {
-fetchLiveRates();
-fetchCards();
-fetchExpenses();
-fetchPackages();
-}
+    async function fetchLiveRates() {
+      try {
+        const res = await fetch("https://open.er-api.com/v6/latest/ILS");
+        const data = await res.json();
+        if (data && data.rates) {
+          RATES.USD = parseFloat((1 / data.rates.USD).toFixed(3));
+          RATES.EUR = parseFloat((1 / data.rates.EUR).toFixed(3));
+          const u = document.getElementById("fxUsdRate");
+          const e = document.getElementById("fxEurRate");
+          if (u) u.textContent = RATES.USD.toFixed(2);
+          if (e) e.textContent = RATES.EUR.toFixed(2);
+          const b = document.getElementById("fxBadge");
+          if (b) { b.textContent = "Live"; b.className = "text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"; }
+        }
+      } catch (err) {
+        console.warn("FX fallback", err);
+      }
+    }
 
-async function fetchLiveRates() {
-try {
-const res = await fetch("https://open.er-api.com/v6/latest/ILS");
-const data = await res.json();
-if (data && data.rates) {
-RATES.USD = parseFloat((1 / data.rates.USD).toFixed(3));
-RATES.EUR = parseFloat((1 / data.rates.EUR).toFixed(3));
-const u = document.getElementById("fxUsdRate");
-const e = document.getElementById("fxEurRate");
-if (u) u.textContent = RATES.USD.toFixed(2);
-if (e) e.textContent = RATES.EUR.toFixed(2);
-const b = document.getElementById("fxBadge");
-if (b) { b.textContent = "Live"; b.className = "text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"; }
-}
-} catch (err) {
-console.warn("FX fallback", err);
-}
-}
+    function switchTab(tab) {
+      try {
+        ['expenses', 'analytics', 'packages', 'settings'].forEach(t => {
+          const view = document.getElementById(`view-${t}`);
+          if (view) {
+            if (t === tab) view.classList.remove('hidden');
+            else view.classList.add('hidden');
+          }
+          const btn = document.getElementById(`tab-${t}`);
+          if (btn) {
+            btn.className = (t === tab)
+              ? "tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap"
+              : "tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap";
+          }
+        });
+        if (tab === 'analytics' && typeof renderAnalytics === 'function') {
+          renderAnalytics();
+        }
+      } catch (err) {
+        console.error("Tab switch failed:", err);
+      }
+    }
 
-function switchTab(tab) {
-try {
-['expenses', 'analytics', 'packages', 'settings'].forEach(t => {
-const view = document.getElementById(`view-${t}`);
-if (view) {
-if (t === tab) view.classList.remove('hidden');
-else view.classList.add('hidden');
-}
-const btn = document.getElementById(`tab-${t}`);
-if (btn) {
-btn.className = (t === tab)
-? "tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap"
-: "tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap";
-}
-});
-if (tab === 'analytics' && typeof renderAnalytics === 'function') {
-renderAnalytics();
-}
-} catch (err) {
-console.error("Tab switch failed:", err);
-}
-}
+    /* ------------------- CARDS ------------------- */
+    async function fetchCards() {
+      try {
+        const res = await fetch(`${getScriptUrl()}?sheet=Cards&t=${Date.now()}`);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          cards = data.map((item, idx) => {
+            let nickname = '';
+            let issuer = '';
+            let day = '';
+            for (const key of Object.keys(item)) {
+              const k = key.toLowerCase().replace(/[\s\r\n]/g, '');
+              if (k.includes('nick') || k.includes('name')) nickname = item[key];
+              else if (k.includes('issuer') || k.includes('type')) issuer = item[key];
+              else if (k.includes('bill') || k.includes('cycle') || k.includes('day')) day = item[key];
+            }
+            return {
+              id: String(item.id || item.ID || `c_${idx}`),
+              nickname: String(nickname || item.nickname || item.Nickname || `Card ${idx + 1}`).trim(),
+              issuer: String(issuer || item.issuer || item.Issuer || '-').trim(),
+              billingCycleDay: String(day || item.billingCycleDay || item.BillingCycleDay || '-').trim()
+            };
+          });
+          localStorage.setItem("cards", JSON.stringify(cards));
+        }
+      } catch (e) {
+        cards = JSON.parse(localStorage.getItem("cards") || "[]");
+      }
+      populateCardDropdown();
+      renderCardsTable();
+    }
 
-    function sortExpensesDescending() {
-      expenses.sort((a, b) => {
-        const da = a.date || '';
-        const db = b.date || '';
-        return db.localeCompare(da);
+    function populateCardDropdown() {
+      const select = document.getElementById("expCard");
+      if (!select) return;
+      
+      const currentSelected = select.value;
+      const list = cards.length ? cards : [{ nickname: "Default Card" }];
+      
+      select.innerHTML = list.map(c => {
+        const name = (c.nickname || 'Default Card').trim();
+        return `<option value="${name}">${name}</option>`;
+      }).join('');
+
+      if (currentSelected && list.some(c => c.nickname === currentSelected)) {
+        select.value = currentSelected;
+      }
+    }
+
+    function renderCardsTable() {
+      const tbody = document.getElementById("cardsTableBody");
+      if (!tbody) return;
+      if (!cards.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No cards registered yet. Add one above.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = cards.map((c, i) => `
+        <tr class="hover:bg-slate-50 border-b border-slate-100">
+          <td class="p-2.5 font-medium text-slate-900">${c.nickname || '-'}</td>
+          <td class="p-2.5 text-slate-600">${c.issuer || '-'}</td>
+          <td class="p-2.5 text-slate-500">${c.billingCycleDay || '-'}</td>
+          <td class="p-2.5 text-center">
+            <button onclick="deleteCard('${c.id || i}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-0.5">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function handleNewCard(e) {
+      if (e) e.preventDefault();
+      const nickname = document.getElementById("cardNickname").value.trim();
+      const issuer = document.getElementById("cardIssuer").value.trim();
+      const day = document.getElementById("cardBillingDay").value.trim();
+      if (!nickname) return;
+
+      const card = { id: "c_" + Date.now(), nickname, issuer, billingCycleDay: day };
+      cards.push(card);
+      localStorage.setItem("cards", JSON.stringify(cards));
+      populateCardDropdown();
+      renderCardsTable();
+
+      document.getElementById("cardNickname").value = "";
+      document.getElementById("cardIssuer").value = "";
+      document.getElementById("cardBillingDay").value = "";
+
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "add", sheet: "Cards", data: card })
       });
     }
 
-/* ------------------- CARDS ------------------- */
-async function fetchCards() {
-try {
-const res = await fetch(`${getScriptUrl()}?sheet=Cards&t=${Date.now()}`);
-const data = await res.json();
-if (Array.isArray(data) && data.length > 0) {
-cards = data.map((item, idx) => {
-let nickname = '';
-let issuer = '';
-let day = '';
-for (const key of Object.keys(item)) {
-const k = key.toLowerCase().replace(/[\s\r\n]/g, '');
-if (k.includes('nick') || k.includes('name')) nickname = item[key];
-else if (k.includes('issuer') || k.includes('type')) issuer = item[key];
-else if (k.includes('bill') || k.includes('cycle') || k.includes('day')) day = item[key];
-}
-return {
-id: String(item.id || item.ID || `c_${idx}`),
-nickname: String(nickname || item.nickname || item.Nickname || `Card ${idx + 1}`).trim(),
-issuer: String(issuer || item.issuer || item.Issuer || '-').trim(),
-billingCycleDay: String(day || item.billingCycleDay || item.BillingCycleDay || '-').trim()
-};
-});
-localStorage.setItem("cards", JSON.stringify(cards));
-}
-} catch (e) {
-cards = JSON.parse(localStorage.getItem("cards") || "[]");
-}
-populateCardDropdown();
-renderCardsTable();
-}
+    function deleteCard(id) {
+      cards = cards.filter((c, i) => String(c.id || i) !== String(id));
+      localStorage.setItem("cards", JSON.stringify(cards));
+      populateCardDropdown();
+      renderCardsTable();
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Cards", id: id })
+      });
+    }
 
-function populateCardDropdown() {
-const select = document.getElementById("expCard");
-if (!select) return;
+    /* ------------------- EXPENSES ------------------- */
+    async function fetchExpenses() {
+      setSyncStatus("Loading...", "amber");
+      try {
+        const res = await fetch(`${getScriptUrl()}?sheet=Expenses&t=${Date.now()}`);
+        const rawData = await res.json();
+        
+        if (Array.isArray(rawData)) {
+          expenses = rawData.map((item, idx) => {
+            const desc = item.description || item.Description || item.item || item.Item || item.title || Object.values(item)[1] || 'Expense';
+            const amount = parseFloat(item.amount || item.Amount || 0);
+            const currency = item.currency || item.Currency || 'ILS';
+            const ilsVal = parseFloat(item.ilsAmount || item.IlsAmount || item.ILS || item.ils || (amount * (RATES[currency] || 1)));
+            const isRec = String(item.isRecurring || item.IsRecurring || '').toLowerCase() === 'yes' || Boolean(item.isRecurring === true);
 
-const currentSelected = select.value;
-const list = cards.length ? cards : [{ nickname: "Default Card" }];
+            return {
+              id: String(item.id || item.ID || `exp_${idx}`),
+              date: parseDateToISO(item.date || item.Date),
+              description: String(desc),
+              amount: isNaN(amount) ? 0 : amount,
+              currency: String(currency),
+              ilsAmount: isNaN(ilsVal) ? (amount || 0) : ilsVal,
+              category: String(item.category || item.Category || 'General'),
+              card: String(item.card || item.Card || 'Default Card'),
+              paymentMethod: String(item.paymentMethod || item.PaymentMethod || 'Credit Card'),
+              isRecurring: isRec
+            };
+          });
+          sortExpensesDescending();
+          localStorage.setItem("expenses", JSON.stringify(expenses));
+          setSyncStatus("Cloud Synced", "emerald");
+        }
+      } catch (err) {
+        expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
+        sortExpensesDescending();
+        setSyncStatus("Cached / Offline", "slate");
+      }
 
-select.innerHTML = list.map(c => {
-const name = (c.nickname || 'Default Card').trim();
-return `<option value="${name}">${name}</option>`;
-}).join('');
+      updateMonthFilterOptions();
+      renderExpenses();
+      renderAnalytics();
+    }
 
-if (currentSelected && list.some(c => c.nickname === currentSelected)) {
-select.value = currentSelected;
-}
-}
+    function updateMonthFilterOptions() {
+      const select = document.getElementById("monthFilter");
+      if (!select) return;
+      const current = select.value;
+      const months = new Set();
 
-function renderCardsTable() {
-const tbody = document.getElementById("cardsTableBody");
-if (!tbody) return;
-if (!cards.length) {
-tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No cards registered yet. Add one above.</td></tr>`;
-return;
-}
-tbody.innerHTML = cards.map((c, i) => `
-       <tr class="hover:bg-slate-50 border-b border-slate-100">
-         <td class="p-2.5 font-medium text-slate-900">${c.nickname || '-'}</td>
-         <td class="p-2.5 text-slate-600">${c.issuer || '-'}</td>
-         <td class="p-2.5 text-slate-500">${c.billingCycleDay || '-'}</td>
-         <td class="p-2.5 text-center">
-           <button onclick="deleteCard('${c.id || i}')" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-0.5">
-             <i class="fa-solid fa-trash"></i>
-           </button>
-         </td>
-       </tr>
-     `).join('');
-}
+      expenses.forEach(item => {
+        if (item.date && item.date.length >= 7) months.add(item.date.substring(0, 7));
+      });
 
-function handleNewCard(e) {
-if (e) e.preventDefault();
-const nickname = document.getElementById("cardNickname").value.trim();
-const issuer = document.getElementById("cardIssuer").value.trim();
-const day = document.getElementById("cardBillingDay").value.trim();
-if (!nickname) return;
+      let html = `<option value="ALL">All Time</option>`;
+      Array.from(months).sort().reverse().forEach(m => {
+        html += `<option value="${m}">${m}</option>`;
+      });
+      select.innerHTML = html;
+      if (current && html.includes(`value="${current}"`)) select.value = current;
+    }
 
-const card = { id: "c_" + Date.now(), nickname, issuer, billingCycleDay: day };
-cards.push(card);
-localStorage.setItem("cards", JSON.stringify(cards));
-populateCardDropdown();
-renderCardsTable();
+    function renderExpenses() {
+      const tbody = document.getElementById("expensesTableBody");
+      if (!tbody) return;
+      const monthSelect = document.getElementById("monthFilter");
+      const selectedMonth = monthSelect ? monthSelect.value : "ALL";
+      const badge = document.getElementById("monthSummaryBadge");
 
-document.getElementById("cardNickname").value = "";
-document.getElementById("cardIssuer").value = "";
-document.getElementById("cardBillingDay").value = "";
+      let filtered = expenses;
+      if (selectedMonth !== "ALL") {
+        filtered = expenses.filter(item => item.date && item.date.startsWith(selectedMonth));
+      }
 
-fetch(getScriptUrl(), {
-method: "POST",
-mode: "no-cors",
-body: JSON.stringify({ action: "add", sheet: "Cards", data: card })
-});
-}
+      if (badge) badge.textContent = `Showing ${filtered.length} entries (Sorted newest first)`;
 
-function deleteCard(id) {
-cards = cards.filter((c, i) => String(c.id || i) !== String(id));
-localStorage.setItem("cards", JSON.stringify(cards));
-populateCardDropdown();
-renderCardsTable();
-fetch(getScriptUrl(), {
-method: "POST",
-mode: "no-cors",
-body: JSON.stringify({ action: "delete", sheet: "Cards", id: id })
-});
-}
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No transactions found.</td></tr>`;
+        document.getElementById("totalSpend").textContent = "₪0.00";
+        document.getElementById("txCount").textContent = "0";
+        return;
+      }
 
-/* ------------------- EXPENSES ------------------- */
-async function fetchExpenses() {
-setSyncStatus("Loading...", "amber");
-try {
-const res = await fetch(`${getScriptUrl()}?sheet=Expenses&t=${Date.now()}`);
-const rawData = await res.json();
+      let totalIls = 0;
+      tbody.innerHTML = filtered.map(item => {
+        const ils = parseFloat(item.ilsAmount) || 0;
+        totalIls += ils;
+        const sym = item.currency === 'USD' ? '$' : item.currency === 'EUR' ? '€' : '₪';
 
-if (Array.isArray(rawData)) {
-expenses = rawData.map((item, idx) => {
-const desc = item.description || item.Description || item.item || item.Item || item.title || Object.values(item)[1] || 'Expense';
-const amount = parseFloat(item.amount || item.Amount || 0);
-const currency = item.currency || item.Currency || 'ILS';
-const ilsVal = parseFloat(item.ilsAmount || item.IlsAmount || item.ILS || item.ils || (amount * (RATES[currency] || 1)));
-const isRec = String(item.isRecurring || item.IsRecurring || '').toLowerCase() === 'yes' || Boolean(item.isRecurring === true);
-
-return {
-id: String(item.id || item.ID || `exp_${idx}`),
-date: parseDateToISO(item.date || item.Date),
-description: String(desc),
-amount: isNaN(amount) ? 0 : amount,
-currency: String(currency),
-ilsAmount: isNaN(ilsVal) ? (amount || 0) : ilsVal,
-category: String(item.category || item.Category || 'General'),
-card: String(item.card || item.Card || 'Default Card'),
-paymentMethod: String(item.paymentMethod || item.PaymentMethod || 'Credit Card'),
-isRecurring: isRec
-};
-});
-sortExpensesDescending();
-localStorage.setItem("expenses", JSON.stringify(expenses));
-setSyncStatus("Cloud Synced", "emerald");
-}
-} catch (err) {
-expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
-sortExpensesDescending();
-setSyncStatus("Cached / Offline", "slate");
-}
-
-updateMonthFilterOptions();
-renderExpenses();
-renderAnalytics();
-}
-
-function updateMonthFilterOptions() {
-const select = document.getElementById("monthFilter");
-if (!select) return;
-const current = select.value;
-const months = new Set();
-
-expenses.forEach(item => {
-if (item.date && item.date.length >= 7) months.add(item.date.substring(0, 7));
-});
-
-let html = `<option value="ALL">All Time</option>`;
-Array.from(months).sort().reverse().forEach(m => {
-html += `<option value="${m}">${m}</option>`;
-});
-select.innerHTML = html;
-if (current && html.includes(`value="${current}"`)) select.value = current;
-}
-
-function renderExpenses() {
-const tbody = document.getElementById("expensesTableBody");
-if (!tbody) return;
-const monthSelect = document.getElementById("monthFilter");
-const selectedMonth = monthSelect ? monthSelect.value : "ALL";
-const badge = document.getElementById("monthSummaryBadge");
-
-let filtered = expenses;
-if (selectedMonth !== "ALL") {
-filtered = expenses.filter(item => item.date && item.date.startsWith(selectedMonth));
-}
-
-if (badge) badge.textContent = `Showing ${filtered.length} entries (Sorted newest first)`;
-
-if (!filtered.length) {
-tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No transactions found.</td></tr>`;
-document.getElementById("totalSpend").textContent = "₪0.00";
-document.getElementById("txCount").textContent = "0";
-return;
-}
-
-let totalIls = 0;
-tbody.innerHTML = filtered.map(item => {
-const ils = parseFloat(item.ilsAmount) || 0;
-totalIls += ils;
-const sym = item.currency === 'USD' ? '$' : item.currency === 'EUR' ? '€' : '₪';
-
-return `
-          <tr class="hover:bg-slate-50 border-b border-slate-100 ${item.isRecurring ? 'bg-indigo-50/20' : ''}">
+        return `
           <tr class="hover:bg-slate-50 border-b border-slate-100 ${item.isRecurring ? 'bg-indigo-50/30' : ''}">
-           <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-xs">${item.date || '-'}</td>
-           <td class="p-3 font-medium text-slate-900">
-             <div class="flex items-center gap-1.5 flex-wrap">
-               <span>${item.description}</span>
-               ${item.isRecurring ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700"><i class="fa-solid fa-repeat"></i> Monthly</span>` : ''}
-             </div>
-           </td>
-           <td class="p-3"><span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700">${item.card}</span></td>
-           <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">${item.category}</span></td>
-           <td class="p-3 text-right font-medium">${sym}${Number(item.amount).toFixed(2)}</td>
-           <td class="p-3 text-right font-semibold text-slate-900">₪${ils.toFixed(2)}</td>
-           <td class="p-3 text-center whitespace-nowrap">
-             <button onclick="startExpenseEdit('${item.id}')" class="text-indigo-600 px-1.5 py-1 text-xs"><i class="fa-solid fa-pen"></i></button>
-             <button onclick="deleteExpense('${item.id}')" class="text-rose-500 px-1.5 py-1 text-xs"><i class="fa-solid fa-trash"></i></button>
-           </td>
-         </tr>
-       `;
-}).join('');
-
-document.getElementById("totalSpend").textContent = `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-document.getElementById("txCount").textContent = filtered.length;
-}
-
-function handleExpenseSubmit(e) {
-if (e) e.preventDefault();
-
-const btn = document.getElementById("expSubmitBtn");
-const descEl = document.getElementById("expDesc");
-const amountEl = document.getElementById("expAmount");
-
-const desc = descEl ? descEl.value.trim() : "";
-const rawAmount = amountEl ? parseFloat(amountEl.value) : 0;
-
-if (!desc) { alert("Please enter description"); return; }
-if (isNaN(rawAmount) || rawAmount <= 0) { alert("Please enter amount"); return; }
-
-const rawDate = document.getElementById("expDate").value || new Date().toISOString().split('T')[0];
-const date = parseDateToISO(rawDate);
-const currency = document.getElementById("expCurrency").value;
-const category = document.getElementById("expCategory").value;
-const card = document.getElementById("expCard").value;
-const method = document.getElementById("expMethod").value;
-const isRecurring = document.getElementById("expIsRecurring").checked;
-const editId = document.getElementById("editExpId").value.trim();
-const isEditing = Boolean(editId);
-
-const rate = RATES[currency] || 1;
-const ilsAmount = (rawAmount * rate).toFixed(2);
-const targetId = isEditing ? editId : ("exp_" + Date.now());
-
-const payload = {
-id: targetId,
-date: date,
-description: desc,
-amount: rawAmount,
-currency: currency,
-ilsAmount: parseFloat(ilsAmount),
-category: category,
-card: card,
-paymentMethod: method,
-isRecurring: isRecurring ? "Yes" : "No"
-};
-
-if (isEditing) {
-expenses = expenses.map(x => String(x.id) === String(editId) ? { ...payload, isRecurring } : x);
-} else {
-expenses.unshift({ ...payload, isRecurring });
-}
-
-sortExpensesDescending();
-localStorage.setItem("expenses", JSON.stringify(expenses));
-updateMonthFilterOptions();
-renderExpenses();
-renderAnalytics();
-cancelExpenseEdit();
-
-if (btn) {
-btn.disabled = false;
-btn.innerHTML = `<i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>`;
-}
-
-setSyncStatus("Syncing...", "amber");
-fetch(getScriptUrl(), {
-method: "POST",
-mode: "no-cors",
-body: JSON.stringify({
-action: isEditing ? "update" : "add",
-sheet: "Expenses",
-id: editId || undefined,
-data: payload
-})
-}).then(() => setSyncStatus("Cloud Synced", "emerald"))
-.catch(() => setSyncStatus("Saved locally", "amber"));
-}
-
-function startExpenseEdit(id) {
-const exp = expenses.find(x => String(x.id) === String(id));
-if (!exp) return;
-document.getElementById("editExpId").value = exp.id;
-document.getElementById("expDate").value = parseDateToISO(exp.date);
-document.getElementById("expDesc").value = exp.description;
-document.getElementById("expAmount").value = exp.amount;
-document.getElementById("expCurrency").value = exp.currency;
-document.getElementById("expCategory").value = exp.category;
-document.getElementById("expCard").value = exp.card;
-document.getElementById("expMethod").value = exp.paymentMethod;
-document.getElementById("expIsRecurring").checked = Boolean(exp.isRecurring);
-
-document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-pen text-amber-500"></i> Edit Expense`;
-document.getElementById("expSubmitText").textContent = "Update Expense";
-document.getElementById("cancelEditBtn").classList.remove("hidden");
-window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function cancelExpenseEdit() {
-document.getElementById("editExpId").value = "";
-document.getElementById("expDesc").value = "";
-document.getElementById("expAmount").value = "";
-const d = document.getElementById("expDate");
-if (d) d.value = new Date().toISOString().split('T')[0];
-document.getElementById("expIsRecurring").checked = false;
-document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense`;
-document.getElementById("expSubmitText").textContent = "Save Expense";
-document.getElementById("cancelEditBtn").classList.add("hidden");
-}
-
-function deleteExpense(id) {
-if (!confirm("Delete this expense?")) return;
-expenses = expenses.filter(x => String(x.id) !== String(id));
-localStorage.setItem("expenses", JSON.stringify(expenses));
-renderExpenses();
-renderAnalytics();
-fetch(getScriptUrl(), {
-method: "POST",
-mode: "no-cors",
-body: JSON.stringify({ action: "delete", sheet: "Expenses", id: id })
-});
-}
-
-/* ------------------- ANALYTICS ------------------- */
-function renderAnalytics() {
-const monthSelect = document.getElementById("monthFilter");
-const selectedMonth = monthSelect ? monthSelect.value : "ALL";
-const filtered = (selectedMonth !== "ALL")
-? expenses.filter(item => item.date && item.date.startsWith(selectedMonth))
-: expenses;
-
-if (!filtered.length) return;
-
-let totalIls = 0;
-let maxExpense = 0;
-const catTotals = {};
-const cardTotals = {};
-const cardCounts = {};
-
-filtered.forEach(item => {
-const val = parseFloat(item.ilsAmount) || 0;
-totalIls += val;
-if (val > maxExpense) maxExpense = val;
-catTotals[item.category] = (catTotals[item.category] || 0) + val;
-cardTotals[item.card] = (cardTotals[item.card] || 0) + val;
-cardCounts[item.card] = (cardCounts[item.card] || 0) + 1;
-});
-
-document.getElementById("statAvgTicket").textContent = `₪${(totalIls / filtered.length).toFixed(2)}`;
-document.getElementById("statMaxExpense").textContent = `₪${maxExpense.toFixed(2)}`;
-
-let topCat = "-", topCatVal = 0;
-for (const [k, v] of Object.entries(catTotals)) {
-if (v > topCatVal) { topCatVal = v; topCat = k; }
-}
-document.getElementById("statTopCat").textContent = `${topCat} (₪${topCatVal.toFixed(0)})`;
-
-let topCard = "-", topCardVal = 0;
-for (const [k, v] of Object.entries(cardTotals)) {
-if (v > topCardVal) { topCardVal = v; topCard = k; }
-}
-document.getElementById("statTopCard").textContent = `${topCard} (₪${topCardVal.toFixed(0)})`;
-
-const cardTbody = document.getElementById("cardStatsTableBody");
-if (cardTbody) {
-cardTbody.innerHTML = Object.keys(cardTotals).map(cName => {
-const cTotal = cardTotals[cName];
-const share = totalIls > 0 ? ((cTotal / totalIls) * 100).toFixed(1) : 0;
-return `
-           <tr class="hover:bg-slate-50 border-b border-slate-100">
-             <td class="p-3 font-medium text-slate-900">${cName}</td>
-             <td class="p-3 text-center text-slate-600">${cardCounts[cName]}</td>
-             <td class="p-3 text-right font-semibold text-slate-900">₪${cTotal.toFixed(2)}</td>
-             <td class="p-3 text-right text-slate-500">${share}%</td>
-           </tr>
-         `;
-}).join('');
-}
-
-buildCharts(catTotals, cardTotals);
-}
-
-function buildCharts(catTotals, cardTotals) {
-const monthlyData = {};
-expenses.forEach(item => {
-if (item.date && item.date.length >= 7) {
-const ym = item.date.substring(0, 7);
-monthlyData[ym] = (monthlyData[ym] || 0) + (parseFloat(item.ilsAmount) || 0);
-}
-});
-
-const mLabels = Object.keys(monthlyData).sort();
-const mPoints = mLabels.map(m => monthlyData[m]);
-const mCanvas = document.getElementById("monthlyTrendChart");
-if (mCanvas) {
-if (trendChartInstance) trendChartInstance.destroy();
-trendChartInstance = new Chart(mCanvas.getContext("2d"), {
-type: 'bar',
-data: {
-labels: mLabels,
-datasets: [{ label: 'Spend', data: mPoints, backgroundColor: '#6366f1', borderRadius: 6 }]
-},
-options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-});
-}
-
-const catCanvas = document.getElementById("categoryChart");
-if (catCanvas) {
-if (categoryChartInstance) categoryChartInstance.destroy();
-categoryChartInstance = new Chart(catCanvas.getContext("2d"), {
-type: 'doughnut',
-data: {
-labels: Object.keys(catTotals),
-datasets: [{
-data: Object.values(catTotals),
-backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#ef4444', '#06b6d4', '#3b82f6', '#8b5cf6', '#14b8a6', '#64748b']
-}]
-},
-options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-});
-}
-
-const cardCanvas = document.getElementById("cardChart");
-if (cardCanvas) {
-if (cardChartInstance) cardChartInstance.destroy();
-cardChartInstance = new Chart(cardCanvas.getContext("2d"), {
-type: 'doughnut',
-data: {
-labels: Object.keys(cardTotals),
-datasets: [{
-data: Object.values(cardTotals),
-backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#84cc16']
-}]
-},
-options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-});
-}
-}
-
-/* ------------------- PACKAGES & EXPENSE SYNC ------------------- */
-function toggleReceivedCheck(checked) {
-const box = document.getElementById("receivedDateBox");
-const dateEl = document.getElementById("pkgReceivedDate");
-const statusEl = document.getElementById("pkgStatus");
-if (checked) {
-box.classList.remove("hidden");
-if (!dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
-if (statusEl) statusEl.value = "Delivered";
-} else {
-box.classList.add("hidden");
-dateEl.value = "";
-}
-}
-
-function handleStatusChange(val) {
-const chk = document.getElementById("pkgIsReceived");
-if (val === "Delivered") {
-chk.checked = true;
-toggleReceivedCheck(true);
-} else if (chk.checked) {
-chk.checked = false;
-toggleReceivedCheck(false);
-}
-}
-
-function syncLinkedExpense(expId, date, desc, amount, currency) {
-try {
-if (!amount || amount <= 0) return null;
-const rate = (typeof RATES !== 'undefined' && RATES[currency]) ? RATES[currency] : 1;
-const ilsAmount = (amount * rate).toFixed(2);
-
-const payload = {
-id: expId,
-date: date,
-description: desc,
-amount: amount,
-currency: currency,
-ilsAmount: parseFloat(ilsAmount),
-category: "Shopping",
-card: "Default Card",
-paymentMethod: "Credit Card",
-isRecurring: false
-};
-
-const existingIdx = expenses.findIndex(x => String(x.id) === String(expId));
-if (existingIdx !== -1) {
-expenses[existingIdx] = payload;
-} else {
-expenses.unshift(payload);
-}
-
-sortExpensesDescending();
-localStorage.setItem("expenses", JSON.stringify(expenses));
-if (typeof updateMonthFilterOptions === 'function') updateMonthFilterOptions();
-if (typeof renderExpenses === 'function') renderExpenses();
-if (typeof renderAnalytics === 'function') renderAnalytics();
-
-fetch(getScriptUrl(), {
-method: "POST",
-mode: "no-cors",
-body: JSON.stringify({
-action: existingIdx !== -1 ? "update" : "add",
-sheet: "Expenses",
-id: existingIdx !== -1 ? expId : undefined,
-data: { ...payload, isRecurring: "No" }
-})
-}).catch(e => console.warn("Background expense sync deferred:", e));
-
-return expId;
-} catch (err) {
-console.error("Non-fatal syncLinkedExpense error:", err);
-}
-}
-
-async function fetchPackages() {
-try {
-const res = await fetch(`${getScriptUrl()}?sheet=Packages&t=${Date.now()}`);
-const rawData = await res.json();
-if (Array.isArray(rawData)) {
-packages = rawData.map((item, idx) => ({
-id: String(item.id || item.ID || `pkg_${idx}`),
-date: parseDateToISO(item.date || item.Date || item.purchaseDate || item.PurchaseDate),
-shop: String(item.shop || item.Shop || item.store || item.Store || '-'),
-itemDescription: String(item.itemDescription || item.ItemDescription || item.item || item.description || 'Package'),
-trackingNumber: String(item.trackingNumber || item.TrackingNumber || item.tracking || ''),
-forwarder: String(item.forwarder || item.Forwarder || 'RedBox'),
-status: String(item.status || item.Status || 'Ordered'),
-isReceived: String(item.isReceived || item.received || '').toLowerCase() === 'true' || item.status === 'Delivered',
-receivedDate: parseDateToISO(item.receivedDate || item.ReceivedDate || ''),
-itemCost: parseFloat(item.itemCost || item.ItemCost || 0) || 0,
-currency: String(item.currency || item.Currency || 'USD'),
-shippingFee: parseFloat(item.shippingFee !== undefined ? item.shippingFee : (item.shippingFeeIls || 0)) || 0,
-shippingCurrency: String(item.shippingCurrency || item.ShippingCurrency || 'USD'),
-totalCostIls: parseFloat(item.totalCostIls || item.TotalCostIls || 0) || 0
-}));
-localStorage.setItem("packages", JSON.stringify(packages));
-}
-} catch (err) {
-packages = JSON.parse(localStorage.getItem("packages") || "[]");
-}
-renderPackages();
-}
-
-function renderPackages() {
-const tbody = document.getElementById("packagesTableBody");
-if (!tbody) return;
-if (!packages.length) {
-tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-400">No active packages.</td></tr>`;
-return;
-}
-tbody.innerHTML = packages.map(pkg => {
-const isUSD = pkg.currency === 'USD';
-return `
-         <tr class="hover:bg-slate-50 border-b border-slate-100 ${pkg.isReceived ? 'bg-emerald-50/20' : ''}">
-           <td class="p-3 text-center">
-             <input type="checkbox" ${pkg.isReceived ? 'checked' : ''} onchange="quickToggleReceived('${pkg.id}', this.checked)" class="w-4 h-4 text-emerald-600 rounded cursor-pointer border-slate-300 focus:ring-emerald-500" />
-           </td>
-           <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-xs">${pkg.date || '-'}</td>
-           <td class="p-3 font-medium text-slate-700 whitespace-nowrap">${pkg.shop || '-'}</td>
-           <td class="p-3 font-medium text-slate-900">${pkg.itemDescription}</td>
-           <td class="p-3">
-             <span class="font-mono text-slate-700 block">${pkg.trackingNumber}</span>
-             <span class="text-[11px] font-semibold text-indigo-600">${pkg.forwarder}</span>
-           </td>
-           <td class="p-3">
-             <span class="px-2 py-0.5 rounded-full text-xs font-medium ${pkg.isReceived ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100'}">
-               ${pkg.status}
-             </span>
-             ${pkg.receivedDate ? `<span class="block text-[11px] text-slate-500 mt-0.5 font-mono">Recv: ${pkg.receivedDate}</span>` : ''}
-           </td>
-           <td class="p-3 text-right font-medium">${isUSD ? '$' : '₪'}${pkg.itemCost.toFixed(2)}</td>
-           <td class="p-3 text-right font-medium">${pkg.shippingCurrency === 'USD' ? '$' : '₪'}${pkg.shippingFee.toFixed(2)}</td>
-           <td class="p-3 text-right font-semibold text-slate-900">₪${pkg.totalCostIls.toFixed(2)}</td>
-           <td class="p-3 text-center whitespace-nowrap">
-             <button onclick="startPackageEdit('${pkg.id}')" class="text-indigo-600 px-1 py-1 text-xs"><i class="fa-solid fa-pen"></i></button>
-             <button onclick="deletePackage('${pkg.id}')" class="text-rose-500 px-1 py-1 text-xs"><i class="fa-solid fa-trash"></i></button>
-           </td>
-         </tr>
-       `;
-}).join('');
-}
-
-function quickToggleReceived(id, isReceived) {
-const pkg = packages.find(x => String(x.id) === String(id));
-if (!pkg) return;
-pkg.isReceived = isReceived;
-pkg.status = isReceived ? "Delivered" : "In Transit to IL";
-pkg.receivedDate = isReceived ? new Date().toISOString().split('T')[0] : "";
-
-localStorage.setItem("packages", JSON.stringify(packages));
-renderPackages();
-
-fetch(getScriptUrl(), {
-method: "POST",
-mode: "no-cors",
-body: JSON.stringify({ action: "update", sheet: "Packages", id: pkg.id, data: pkg })
-});
-}
-
-function handlePackageSubmit(e) {
-if (e) e.preventDefault();
-const btn = document.getElementById("pkgSubmitBtn");
-const desc = document.getElementById("pkgDesc").value.trim();
-if (!desc) return alert("Enter item description");
-
-const rawDate = document.getElementById("pkgDate").value || new Date().toISOString().split('T')[0];
-const date = parseDateToISO(rawDate);
-const shop = document.getElementById("pkgShop").value.trim();
-const tracking = document.getElementById("pkgTracking").value.trim();
-const forwarder = document.getElementById("pkgForwarder").value;
-const cost = parseFloat(document.getElementById("pkgCost").value) || 0;
-const currency = document.getElementById("pkgCurrency").value;
-const shippingFee = parseFloat(document.getElementById("pkgShippingFee").value) || 0;
-const shippingCurrency = document.getElementById("pkgShippingCurrency").value;
-let status = document.getElementById("pkgStatus").value;
-const isReceived = document.getElementById("pkgIsReceived").checked;
-const receivedDate = isReceived ? (document.getElementById("pkgReceivedDate").value || new Date().toISOString().split('T')[0]) : "";
-
-if (isReceived) status = "Delivered";
-
-const editId = document.getElementById("editPkgId").value.trim();
-const isEditing = Boolean(editId);
-const targetId = isEditing ? editId : ("pkg_" + Date.now());
-
-const itemIls = cost * (RATES[currency] || 1);
-const shipIls = shippingFee * (RATES[shippingCurrency] || 1);
-const totalCostIls = (itemIls + shipIls).toFixed(2);
-
-const itemExpId = `${targetId}_item`;
-const shippingExpId = `${targetId}_ship`;
-
-if (cost > 0) {
-const itemDesc = shop ? `[${shop}] ${desc}` : desc;
-syncLinkedExpense(itemExpId, date, itemDesc, cost, currency);
-}
-
-if (shippingFee > 0) {
-const shipDesc = `Shipping: ${desc} (${forwarder})`;
-syncLinkedExpense(shippingExpId, date, shipDesc, shippingFee, shippingCurrency);
-}
-
-const payload = {
-id: targetId,
-date: date,
-purchaseDate: date,
-shop: shop,
-itemDescription: desc,
-trackingNumber: tracking,
-forwarder: forwarder,
-status: status,
-isReceived: isReceived,
-receivedDate: receivedDate,
-itemCost: cost,
-currency: currency,
-shippingFee: shippingFee,
-shippingCurrency: shippingCurrency,
-totalCostIls: parseFloat(totalCostIls)
-};
-
-if (isEditing) {
-packages = packages.map(x => String(x.id) === String(editId) ? payload : x);
-} else {
-packages.unshift(payload);
-}
-
-localStorage.setItem("packages", JSON.stringify(packages));
-renderPackages();
-cancelPackageEdit();
-
-if (btn) {
-btn.disabled = false;
-btn.innerHTML = `<i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>`;
-}
-
-setSyncStatus("Syncing...", "amber");
-fetch(getScriptUrl(), {
-method: "POST",
-mode: "no-cors",
-body: JSON.stringify({ action: isEditing ? "update" : "add", sheet: "Packages", id: editId || undefined, data: payload })
-}).then(() => setSyncStatus("Cloud Synced", "emerald"))
-.catch(() => setSyncStatus("Saved locally", "amber"));
-}
-
-function startPackageEdit(id) {
-const pkg = packages.find(x => String(x.id) === String(id));
-if (!pkg) return;
-document.getElementById("editPkgId").value = pkg.id;
-document.getElementById("pkgDate").value = parseDateToISO(pkg.date);
-document.getElementById("pkgShop").value = pkg.shop === '-' ? '' : (pkg.shop || '');
-document.getElementById("pkgDesc").value = pkg.itemDescription;
-document.getElementById("pkgTracking").value = pkg.trackingNumber;
-document.getElementById("pkgForwarder").value = pkg.forwarder;
-document.getElementById("pkgCost").value = pkg.itemCost;
-document.getElementById("pkgCurrency").value = pkg.currency;
-document.getElementById("pkgShippingFee").value = pkg.shippingFee;
-document.getElementById("pkgShippingCurrency").value = pkg.shippingCurrency;
-document.getElementById("pkgStatus").value = pkg.status;
-
-const chk = document.getElementById("pkgIsReceived");
-chk.checked = Boolean(pkg.isReceived);
-toggleReceivedCheck(chk.checked);
-if (pkg.receivedDate) {
-document.getElementById("pkgReceivedDate").value = parseDateToISO(pkg.receivedDate);
-}
-
-document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-pen text-amber-500"></i> Update Package`;
-document.getElementById("pkgSubmitText").textContent = "Update Package";
-document.getElementById("cancelPkgEditBtn").classList.remove("hidden");
-window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function cancelPackageEdit() {
-document.getElementById("editPkgId").value = "";
-const d = document.getElementById("pkgDate");
-if (d) d.value = new Date().toISOString().split('T')[0];
-document.getElementById("pkgShop").value = "";
-document.getElementById("pkgDesc").value = "";
-document.getElementById("pkgTracking").value = "";
-document.getElementById("pkgCost").value = "";
-document.getElementById("pkgShippingFee").value = "";
-const chk = document.getElementById("pkgIsReceived");
-if (chk) {
-chk.checked = false;
-toggleReceivedCheck(false);
-}
-document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order`;
-document.getElementById("pkgSubmitText").textContent = "Save Package";
-document.getElementById("cancelPkgEditBtn").classList.add("hidden");
-}
-
-function deletePackage(id) {
-if (!confirm("Delete package and its linked expenses?")) return;
-packages = packages.filter(x => String(x.id) !== String(id));
-localStorage.setItem("packages", JSON.stringify(packages));
-renderPackages();
-
-const itemExpId = `${id}_item`;
-const shipExpId = `${id}_ship`;
-expenses = expenses.filter(x => String(x.id) !== itemExpId && String(x.id) !== shipExpId);
-sortExpensesDescending();
-localStorage.setItem("expenses", JSON.stringify(expenses));
-renderExpenses();
-renderAnalytics();
-
-fetch(getScriptUrl(), {
-method: "POST",
-mode: "no-cors",
-body: JSON.stringify({ action: "delete", sheet: "Packages", id: id })
-});
-fetch(getScriptUrl(), {
-method: "POST",
-mode: "no-cors",
-body: JSON.stringify({ action: "delete", sheet: "Expenses", id: itemExpId })
-});
-fetch(getScriptUrl(), {
-method: "POST",
-mode: "no-cors",
-body: JSON.stringify({ action: "delete", sheet: "Expenses", id: shipExpId })
-});
-}
-
-/* ------------------- HELPERS ------------------- */
-function setSyncStatus(text, color) {
-const el = document.getElementById("syncStatus");
-if (!el) return;
-const dot = el.querySelector("span:first-child");
-const label = el.querySelector("span:last-child");
-if (label) label.textContent = text;
-if (dot) dot.className = `w-2 h-2 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : color === 'amber' ? 'bg-amber-500 animate-pulse' : 'bg-slate-400'}`;
-}
-
-function clearLocalStorage() {
-localStorage.clear();
-alert("Cache cleared.");
-location.reload();
-}
-</script>
+            <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-xs">${item.date || '-'}</td>
+            <td class="p-3 font-medium text-slate-900">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span>${item.description}</span>
+                ${item.isRecurring ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700"><i class="fa-solid fa-repeat"></i> Monthly</span>` : ''}
+              </div>
+            </td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700">${item.card}</span></td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">${item.category}</span></td>
+            <td class="p-3 text-right font-medium">${sym}${Number(item.amount).toFixed(2)}</td>
+            <td class="p-3 text-right font-semibold text-slate-900">₪${ils.toFixed(2)}</td>
+            <td class="p-3 text-center whitespace-nowrap">
+              <button onclick="startExpenseEdit('${item.id}')" class="text-indigo-600 px-1.5 py-1 text-xs"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="deleteExpense('${item.id}')" class="text-rose-500 px-1.5 py-1 text-xs"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById("totalSpend").textContent = `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById("txCount").textContent = filtered.length;
+    }
+
+    function handleExpenseSubmit(e) {
+      if (e) e.preventDefault();
+
+      const btn = document.getElementById("expSubmitBtn");
+      const descEl = document.getElementById("expDesc");
+      const amountEl = document.getElementById("expAmount");
+
+      const desc = descEl ? descEl.value.trim() : "";
+      const rawAmount = amountEl ? parseFloat(amountEl.value) : 0;
+
+      if (!desc) { alert("Please enter description"); return; }
+      if (isNaN(rawAmount) || rawAmount <= 0) { alert("Please enter amount"); return; }
+
+      const rawDate = document.getElementById("expDate").value || new Date().toISOString().split('T')[0];
+      const date = parseDateToISO(rawDate);
+      const currency = document.getElementById("expCurrency").value;
+      const category = document.getElementById("expCategory").value;
+      const card = document.getElementById("expCard").value;
+      const method = document.getElementById("expMethod").value;
+      const isRecurring = document.getElementById("expIsRecurring").checked;
+      const editId = document.getElementById("editExpId").value.trim();
+      const isEditing = Boolean(editId);
+
+      const rate = RATES[currency] || 1;
+      const ilsAmount = (rawAmount * rate).toFixed(2);
+      const targetId = isEditing ? editId : ("exp_" + Date.now());
+
+      const payload = {
+        id: targetId,
+        date: date,
+        description: desc,
+        amount: rawAmount,
+        currency: currency,
+        ilsAmount: parseFloat(ilsAmount),
+        category: category,
+        card: card,
+        paymentMethod: method,
+        isRecurring: isRecurring ? "Yes" : "No"
+      };
+
+      if (isEditing) {
+        expenses = expenses.map(x => String(x.id) === String(editId) ? { ...payload, isRecurring } : x);
+      } else {
+        expenses.unshift({ ...payload, isRecurring });
+      }
+
+      sortExpensesDescending();
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+      updateMonthFilterOptions();
+      renderExpenses();
+      renderAnalytics();
+      cancelExpenseEdit();
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>`;
+      }
+
+      setSyncStatus("Syncing...", "amber");
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          action: isEditing ? "update" : "add",
+          sheet: "Expenses",
+          id: editId || undefined,
+          data: payload
+        })
+      }).then(() => setSyncStatus("Cloud Synced", "emerald"))
+        .catch(() => setSyncStatus("Saved locally", "amber"));
+    }
+
+    function startExpenseEdit(id) {
+      const exp = expenses.find(x => String(x.id) === String(id));
+      if (!exp) return;
+      document.getElementById("editExpId").value = exp.id;
+      document.getElementById("expDate").value = parseDateToISO(exp.date);
+      document.getElementById("expDesc").value = exp.description;
+      document.getElementById("expAmount").value = exp.amount;
+      document.getElementById("expCurrency").value = exp.currency;
+      document.getElementById("expCategory").value = exp.category;
+      document.getElementById("expCard").value = exp.card;
+      document.getElementById("expMethod").value = exp.paymentMethod;
+      document.getElementById("expIsRecurring").checked = Boolean(exp.isRecurring);
+
+      document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-pen text-amber-500"></i> Edit Expense`;
+      document.getElementById("expSubmitText").textContent = "Update Expense";
+      document.getElementById("cancelEditBtn").classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelExpenseEdit() {
+      document.getElementById("editExpId").value = "";
+      document.getElementById("expDesc").value = "";
+      document.getElementById("expAmount").value = "";
+      const d = document.getElementById("expDate");
+      if (d) d.value = new Date().toISOString().split('T')[0];
+      document.getElementById("expIsRecurring").checked = false;
+      document.getElementById("formHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense`;
+      document.getElementById("expSubmitText").textContent = "Save Expense";
+      document.getElementById("cancelEditBtn").classList.add("hidden");
+    }
+
+    function deleteExpense(id) {
+      if (!confirm("Delete this expense?")) return;
+      expenses = expenses.filter(x => String(x.id) !== String(id));
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+      renderExpenses();
+      renderAnalytics();
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Expenses", id: id })
+      });
+    }
+
+    /* ------------------- ENHANCED ANALYTICS ------------------- */
+    function renderAnalytics() {
+      const monthSelect = document.getElementById("monthFilter");
+      const selectedMonth = monthSelect ? monthSelect.value : "ALL";
+      
+      const filteredExp = (selectedMonth !== "ALL")
+        ? expenses.filter(item => item.date && item.date.startsWith(selectedMonth))
+        : expenses;
+
+      const filteredPkg = (selectedMonth !== "ALL")
+        ? packages.filter(item => item.date && item.date.startsWith(selectedMonth))
+        : packages;
+
+      let totalIls = 0;
+      let recurringIls = 0;
+      let maxExpense = 0;
+      const catTotals = {};
+      const cardTotals = {};
+      const cardCounts = {};
+
+      filteredExp.forEach(item => {
+        const val = parseFloat(item.ilsAmount) || 0;
+        totalIls += val;
+        if (val > maxExpense) maxExpense = val;
+
+        const isRec = item.isRecurring === true || String(item.isRecurring).toLowerCase() === 'yes';
+        if (isRec) recurringIls += val;
+
+        catTotals[item.category] = (catTotals[item.category] || 0) + val;
+        cardTotals[item.card] = (cardTotals[item.card] || 0) + val;
+        cardCounts[item.card] = (cardCounts[item.card] || 0) + 1;
+      });
+
+      let pkgSpendIls = 0;
+      filteredPkg.forEach(p => {
+        pkgSpendIls += parseFloat(p.totalCostIls) || 0;
+      });
+
+      const setEl = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+      setEl("statTotalSpend", `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+      setEl("statRecurringSpend", `₪${recurringIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+      setEl("statPackagesSpend", `₪${pkgSpendIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+      setEl("statAvgTicket", `₪${filteredExp.length ? (totalIls / filteredExp.length).toFixed(2) : "0.00"}`);
+
+      let topCat = "-", topCatVal = 0;
+      for (const [k, v] of Object.entries(catTotals)) {
+        if (v > topCatVal) { topCatVal = v; topCat = k; }
+      }
+      setEl("statTopCat", topCatVal > 0 ? `${topCat} (₪${topCatVal.toFixed(0)})` : "-");
+
+      let topCard = "-", topCardVal = 0;
+      for (const [k, v] of Object.entries(cardTotals)) {
+        if (v > topCardVal) { topCardVal = v; topCard = k; }
+      }
+      setEl("statTopCard", topCardVal > 0 ? `${topCard} (₪${topCardVal.toFixed(0)})` : "-");
+
+      const cardTbody = document.getElementById("cardStatsTableBody");
+      if (cardTbody) {
+        if (!Object.keys(cardTotals).length) {
+          cardTbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No card activity found.</td></tr>`;
+        } else {
+          cardTbody.innerHTML = Object.keys(cardTotals).map(cName => {
+            const cTotal = cardTotals[cName];
+            const share = totalIls > 0 ? ((cTotal / totalIls) * 100).toFixed(1) : 0;
+            return `
+              <tr class="hover:bg-slate-50 border-b border-slate-100">
+                <td class="p-3 font-medium text-slate-900">${cName}</td>
+                <td class="p-3 text-center text-slate-600">${cardCounts[cName]}</td>
+                <td class="p-3 text-right font-semibold text-slate-900">₪${cTotal.toFixed(2)}</td>
+                <td class="p-3 text-right text-slate-500">${share}%</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+
+      buildCharts(catTotals, cardTotals);
+    }
+
+    function buildCharts(catTotals, cardTotals) {
+      // 1. Stacked Monthly Spend: Standard vs Recurring
+      const monthlyStandard = {};
+      const monthlyRecurring = {};
+      const allMonthsSet = new Set();
+
+      expenses.forEach(item => {
+        if (item.date && item.date.length >= 7) {
+          const ym = item.date.substring(0, 7);
+          allMonthsSet.add(ym);
+          const val = parseFloat(item.ilsAmount) || 0;
+          const isRec = item.isRecurring === true || String(item.isRecurring).toLowerCase() === 'yes';
+          if (isRec) {
+            monthlyRecurring[ym] = (monthlyRecurring[ym] || 0) + val;
+          } else {
+            monthlyStandard[ym] = (monthlyStandard[ym] || 0) + val;
+          }
+        }
+      });
+
+      const mLabels = Array.from(allMonthsSet).sort();
+      const standardData = mLabels.map(m => monthlyStandard[m] || 0);
+      const recurringData = mLabels.map(m => monthlyRecurring[m] || 0);
+
+      const mCanvas = document.getElementById("monthlyTrendChart");
+      if (mCanvas) {
+        if (trendChartInstance) trendChartInstance.destroy();
+        trendChartInstance = new Chart(mCanvas.getContext("2d"), {
+          type: 'bar',
+          data: {
+            labels: mLabels.length ? mLabels : ['No Data'],
+            datasets: [
+              {
+                label: 'Standard Expenses',
+                data: mLabels.length ? standardData : [0],
+                backgroundColor: '#6366f1',
+                borderRadius: 4
+              },
+              {
+                label: 'Monthly Recurring',
+                data: mLabels.length ? recurringData : [0],
+                backgroundColor: '#10b981',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true, beginAtZero: true }
+            },
+            plugins: {
+              legend: { position: 'top' }
+            }
+          }
+        });
+      }
+
+      // 2. Dedicated Monthly Packages / Online Shopping Spend Trend
+      const pkgMonthly = {};
+      packages.forEach(pkg => {
+        if (pkg.date && pkg.date.length >= 7) {
+          const ym = pkg.date.substring(0, 7);
+          pkgMonthly[ym] = (pkgMonthly[ym] || 0) + (parseFloat(pkg.totalCostIls) || 0);
+        }
+      });
+
+      const pkgLabels = Object.keys(pkgMonthly).sort();
+      const pkgPoints = pkgLabels.map(m => pkgMonthly[m]);
+      const pkgCanvas = document.getElementById("packagesTrendChart");
+      if (pkgCanvas) {
+        if (packagesChartInstance) packagesChartInstance.destroy();
+        packagesChartInstance = new Chart(pkgCanvas.getContext("2d"), {
+          type: 'bar',
+          data: {
+            labels: pkgLabels.length ? pkgLabels : ['No Data'],
+            datasets: [{
+              label: 'Packages Landed Spend',
+              data: pkgLabels.length ? pkgPoints : [0],
+              backgroundColor: '#0284c7',
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+      }
+
+      // 3. Category Doughnut Chart
+      const catCanvas = document.getElementById("categoryChart");
+      if (catCanvas) {
+        if (categoryChartInstance) categoryChartInstance.destroy();
+        categoryChartInstance = new Chart(catCanvas.getContext("2d"), {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(catTotals),
+            datasets: [{
+              data: Object.values(catTotals),
+              backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#ef4444', '#06b6d4', '#3b82f6', '#8b5cf6', '#14b8a6', '#64748b']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+
+      // 4. Card Doughnut Chart
+      const cardCanvas = document.getElementById("cardChart");
+      if (cardCanvas) {
+        if (cardChartInstance) cardChartInstance.destroy();
+        cardChartInstance = new Chart(cardCanvas.getContext("2d"), {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(cardTotals),
+            datasets: [{
+              data: Object.values(cardTotals),
+              backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#84cc16']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+    }
+
+    /* ------------------- PACKAGES & DETERMINISTIC EXPENSE SYNC ------------------- */
+    function toggleReceivedCheck(checked) {
+      const box = document.getElementById("receivedDateBox");
+      const dateEl = document.getElementById("pkgReceivedDate");
+      const statusEl = document.getElementById("pkgStatus");
+      if (checked) {
+        box.classList.remove("hidden");
+        if (!dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+        if (statusEl) statusEl.value = "Delivered";
+      } else {
+        box.classList.add("hidden");
+        dateEl.value = "";
+      }
+    }
+
+    function handleStatusChange(val) {
+      const chk = document.getElementById("pkgIsReceived");
+      if (val === "Delivered") {
+        chk.checked = true;
+        toggleReceivedCheck(true);
+      } else if (chk.checked) {
+        chk.checked = false;
+        toggleReceivedCheck(false);
+      }
+    }
+
+    // Deterministic expense sync: modifies existing linked row or appends once
+    function syncLinkedExpense(expId, date, desc, amount, currency) {
+      try {
+        if (!amount || amount <= 0) return null;
+        const rate = (typeof RATES !== 'undefined' && RATES[currency]) ? RATES[currency] : 1;
+        const ilsAmount = (amount * rate).toFixed(2);
+        
+        const payload = {
+          id: expId,
+          date: date,
+          description: desc,
+          amount: amount,
+          currency: currency,
+          ilsAmount: parseFloat(ilsAmount),
+          category: "Shopping",
+          card: "Default Card",
+          paymentMethod: "Credit Card",
+          isRecurring: false
+        };
+
+        const existingIdx = expenses.findIndex(x => String(x.id) === String(expId));
+        if (existingIdx !== -1) {
+          expenses[existingIdx] = payload;
+        } else {
+          expenses.unshift(payload);
+        }
+
+        sortExpensesDescending();
+        localStorage.setItem("expenses", JSON.stringify(expenses));
+        if (typeof updateMonthFilterOptions === 'function') updateMonthFilterOptions();
+        if (typeof renderExpenses === 'function') renderExpenses();
+        if (typeof renderAnalytics === 'function') renderAnalytics();
+
+        fetch(getScriptUrl(), {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify({
+            action: existingIdx !== -1 ? "update" : "add",
+            sheet: "Expenses",
+            id: existingIdx !== -1 ? expId : undefined,
+            data: { ...payload, isRecurring: "No" }
+          })
+        }).catch(e => console.warn("Background expense sync deferred:", e));
+
+        return expId;
+      } catch (err) {
+        console.error("Non-fatal syncLinkedExpense error:", err);
+      }
+    }
+
+    async function fetchPackages() {
+      try {
+        const res = await fetch(`${getScriptUrl()}?sheet=Packages&t=${Date.now()}`);
+        const rawData = await res.json();
+        if (Array.isArray(rawData)) {
+          packages = rawData.map((item, idx) => ({
+            id: String(item.id || item.ID || `pkg_${idx}`),
+            date: parseDateToISO(item.date || item.Date || item.purchaseDate || item.PurchaseDate),
+            shop: String(item.shop || item.Shop || item.store || item.Store || '-'),
+            itemDescription: String(item.itemDescription || item.ItemDescription || item.item || item.description || 'Package'),
+            trackingNumber: String(item.trackingNumber || item.TrackingNumber || item.tracking || ''),
+            forwarder: String(item.forwarder || item.Forwarder || 'RedBox'),
+            status: String(item.status || item.Status || 'Ordered'),
+            isReceived: String(item.isReceived || item.received || '').toLowerCase() === 'true' || item.status === 'Delivered',
+            receivedDate: parseDateToISO(item.receivedDate || item.ReceivedDate || ''),
+            itemCost: parseFloat(item.itemCost || item.ItemCost || 0) || 0,
+            currency: String(item.currency || item.Currency || 'USD'),
+            shippingFee: parseFloat(item.shippingFee !== undefined ? item.shippingFee : (item.shippingFeeIls || 0)) || 0,
+            shippingCurrency: String(item.shippingCurrency || item.ShippingCurrency || 'USD'),
+            totalCostIls: parseFloat(item.totalCostIls || item.TotalCostIls || 0) || 0
+          }));
+          localStorage.setItem("packages", JSON.stringify(packages));
+        }
+      } catch (err) {
+        packages = JSON.parse(localStorage.getItem("packages") || "[]");
+      }
+      renderPackages();
+    }
+
+    function renderPackages() {
+      const tbody = document.getElementById("packagesTableBody");
+      if (!tbody) return;
+      if (!packages.length) {
+        tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-400">No active packages.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = packages.map(pkg => {
+        const isUSD = pkg.currency === 'USD';
+        return `
+          <tr class="hover:bg-slate-50 border-b border-slate-100 ${pkg.isReceived ? 'bg-emerald-50/20' : ''}">
+            <td class="p-3 text-center">
+              <input type="checkbox" ${pkg.isReceived ? 'checked' : ''} onchange="quickToggleReceived('${pkg.id}', this.checked)" class="w-4 h-4 text-emerald-600 rounded cursor-pointer border-slate-300 focus:ring-emerald-500" />
+            </td>
+            <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-xs">${pkg.date || '-'}</td>
+            <td class="p-3 font-medium text-slate-700 whitespace-nowrap">${pkg.shop || '-'}</td>
+            <td class="p-3 font-medium text-slate-900">${pkg.itemDescription}</td>
+            <td class="p-3">
+              <span class="font-mono text-slate-700 block">${pkg.trackingNumber}</span>
+              <span class="text-[11px] font-semibold text-indigo-600">${pkg.forwarder}</span>
+            </td>
+            <td class="p-3">
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium ${pkg.isReceived ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100'}">
+                ${pkg.status}
+              </span>
+              ${pkg.receivedDate ? `<span class="block text-[11px] text-slate-500 mt-0.5 font-mono">Recv: ${pkg.receivedDate}</span>` : ''}
+            </td>
+            <td class="p-3 text-right font-medium">${isUSD ? '$' : '₪'}${pkg.itemCost.toFixed(2)}</td>
+            <td class="p-3 text-right font-medium">${pkg.shippingCurrency === 'USD' ? '$' : '₪'}${pkg.shippingFee.toFixed(2)}</td>
+            <td class="p-3 text-right font-semibold text-slate-900">₪${pkg.totalCostIls.toFixed(2)}</td>
+            <td class="p-3 text-center whitespace-nowrap">
+              <button onclick="startPackageEdit('${pkg.id}')" class="text-indigo-600 px-1 py-1 text-xs"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="deletePackage('${pkg.id}')" class="text-rose-500 px-1 py-1 text-xs"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function quickToggleReceived(id, isReceived) {
+      const pkg = packages.find(x => String(x.id) === String(id));
+      if (!pkg) return;
+      pkg.isReceived = isReceived;
+      pkg.status = isReceived ? "Delivered" : "In Transit to IL";
+      pkg.receivedDate = isReceived ? new Date().toISOString().split('T')[0] : "";
+      
+      localStorage.setItem("packages", JSON.stringify(packages));
+      renderPackages();
+
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "update", sheet: "Packages", id: pkg.id, data: pkg })
+      });
+    }
+
+    function handlePackageSubmit(e) {
+      if (e) e.preventDefault();
+      const btn = document.getElementById("pkgSubmitBtn");
+      const desc = document.getElementById("pkgDesc").value.trim();
+      if (!desc) return alert("Enter item description");
+
+      const rawDate = document.getElementById("pkgDate").value || new Date().toISOString().split('T')[0];
+      const date = parseDateToISO(rawDate);
+      const shop = document.getElementById("pkgShop").value.trim();
+      const tracking = document.getElementById("pkgTracking").value.trim();
+      const forwarder = document.getElementById("pkgForwarder").value;
+      const cost = parseFloat(document.getElementById("pkgCost").value) || 0;
+      const currency = document.getElementById("pkgCurrency").value;
+      const shippingFee = parseFloat(document.getElementById("pkgShippingFee").value) || 0;
+      const shippingCurrency = document.getElementById("pkgShippingCurrency").value;
+      let status = document.getElementById("pkgStatus").value;
+      const isReceived = document.getElementById("pkgIsReceived").checked;
+      const receivedDate = isReceived ? (document.getElementById("pkgReceivedDate").value || new Date().toISOString().split('T')[0]) : "";
+
+      if (isReceived) status = "Delivered";
+
+      const editId = document.getElementById("editPkgId").value.trim();
+      const isEditing = Boolean(editId);
+      const targetId = isEditing ? editId : ("pkg_" + Date.now());
+
+      const itemIls = cost * (RATES[currency] || 1);
+      const shipIls = shippingFee * (RATES[shippingCurrency] || 1);
+      const totalCostIls = (itemIls + shipIls).toFixed(2);
+
+      // Deterministic IDs prevent duplicate rows upon subsequent edits
+      const itemExpId = `${targetId}_item`;
+      const shippingExpId = `${targetId}_ship`;
+
+      if (cost > 0) {
+        const itemDesc = shop ? `[${shop}] ${desc}` : desc;
+        syncLinkedExpense(itemExpId, date, itemDesc, cost, currency);
+      }
+
+      if (shippingFee > 0) {
+        const shipDesc = `Shipping: ${desc} (${forwarder})`;
+        syncLinkedExpense(shippingExpId, date, shipDesc, shippingFee, shippingCurrency);
+      }
+
+      const payload = {
+        id: targetId,
+        date: date,
+        purchaseDate: date,
+        shop: shop,
+        itemDescription: desc,
+        trackingNumber: tracking,
+        forwarder: forwarder,
+        status: status,
+        isReceived: isReceived,
+        receivedDate: receivedDate,
+        itemCost: cost,
+        currency: currency,
+        shippingFee: shippingFee,
+        shippingCurrency: shippingCurrency,
+        totalCostIls: parseFloat(totalCostIls)
+      };
+
+      if (isEditing) {
+        packages = packages.map(x => String(x.id) === String(editId) ? payload : x);
+      } else {
+        packages.unshift(payload);
+      }
+
+      localStorage.setItem("packages", JSON.stringify(packages));
+      renderPackages();
+      cancelPackageEdit();
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>`;
+      }
+
+      setSyncStatus("Syncing...", "amber");
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: isEditing ? "update" : "add", sheet: "Packages", id: editId || undefined, data: payload })
+      }).then(() => setSyncStatus("Cloud Synced", "emerald"))
+        .catch(() => setSyncStatus("Saved locally", "amber"));
+    }
+
+    function startPackageEdit(id) {
+      const pkg = packages.find(x => String(x.id) === String(id));
+      if (!pkg) return;
+      document.getElementById("editPkgId").value = pkg.id;
+      document.getElementById("pkgDate").value = parseDateToISO(pkg.date);
+      document.getElementById("pkgShop").value = pkg.shop === '-' ? '' : (pkg.shop || '');
+      document.getElementById("pkgDesc").value = pkg.itemDescription;
+      document.getElementById("pkgTracking").value = pkg.trackingNumber;
+      document.getElementById("pkgForwarder").value = pkg.forwarder;
+      document.getElementById("pkgCost").value = pkg.itemCost;
+      document.getElementById("pkgCurrency").value = pkg.currency;
+      document.getElementById("pkgShippingFee").value = pkg.shippingFee;
+      document.getElementById("pkgShippingCurrency").value = pkg.shippingCurrency;
+      document.getElementById("pkgStatus").value = pkg.status;
+
+      const chk = document.getElementById("pkgIsReceived");
+      chk.checked = Boolean(pkg.isReceived);
+      toggleReceivedCheck(chk.checked);
+      if (pkg.receivedDate) {
+        document.getElementById("pkgReceivedDate").value = parseDateToISO(pkg.receivedDate);
+      }
+
+      document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-pen text-amber-500"></i> Update Package`;
+      document.getElementById("pkgSubmitText").textContent = "Update Package";
+      document.getElementById("cancelPkgEditBtn").classList.remove("hidden");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelPackageEdit() {
+      document.getElementById("editPkgId").value = "";
+      const d = document.getElementById("pkgDate");
+      if (d) d.value = new Date().toISOString().split('T')[0];
+      document.getElementById("pkgShop").value = "";
+      document.getElementById("pkgDesc").value = "";
+      document.getElementById("pkgTracking").value = "";
+      document.getElementById("pkgCost").value = "";
+      document.getElementById("pkgShippingFee").value = "";
+      const chk = document.getElementById("pkgIsReceived");
+      if (chk) {
+        chk.checked = false;
+        toggleReceivedCheck(false);
+      }
+      document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order`;
+      document.getElementById("pkgSubmitText").textContent = "Save Package";
+      document.getElementById("cancelPkgEditBtn").classList.add("hidden");
+    }
+
+    function deletePackage(id) {
+      if (!confirm("Delete package and its linked expenses?")) return;
+      packages = packages.filter(x => String(x.id) !== String(id));
+      localStorage.setItem("packages", JSON.stringify(packages));
+      renderPackages();
+
+      const itemExpId = `${id}_item`;
+      const shipExpId = `${id}_ship`;
+      expenses = expenses.filter(x => String(x.id) !== itemExpId && String(x.id) !== shipExpId);
+      sortExpensesDescending();
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+      renderExpenses();
+      renderAnalytics();
+
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Packages", id: id })
+      });
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Expenses", id: itemExpId })
+      });
+      fetch(getScriptUrl(), {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", sheet: "Expenses", id: shipExpId })
+      });
+    }
+
+    /* ------------------- STATUS & CACHE UTILITIES ------------------- */
+    function setSyncStatus(text, color) {
+      const el = document.getElementById("syncStatus");
+      if (!el) return;
+      const dot = el.querySelector("span:first-child");
+      const label = el.querySelector("span:last-child");
+      if (label) label.textContent = text;
+      if (dot) dot.className = `w-2 h-2 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : color === 'amber' ? 'bg-amber-500 animate-pulse' : 'bg-slate-400'}`;
+    }
+
+    function clearLocalStorage() {
+      localStorage.clear();
+      alert("Cache cleared.");
+      location.reload();
+    }
+  </script>
 </body>
 </html>
