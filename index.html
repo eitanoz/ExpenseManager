@@ -1,4 +1,4 @@
-<!-- VER 7.0 -->
+<!-- VER 6.0 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -221,29 +221,34 @@
       <!-- TAB 2: ANALYTICS & STATS -->
       <section id="view-analytics" class="hidden space-y-6">
         <!-- Top KPI Metric Badges -->
-        <!-- Top KPI Cards (Cleaned up: Avg Ticket & Top Category removed) -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <span class="text-xs font-medium text-slate-500 block truncate">Total Spend</span>
-            <span id="statTotalSpend" class="text-lg sm:text-xl font-bold text-slate-900 mt-1 block">₪0.00</span>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-medium text-slate-500 block truncate">Total Spend</span>
+            <span id="statTotalSpend" class="text-base sm:text-lg font-bold text-slate-900 mt-1 block">₪0.00</span>
           </div>
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <span class="text-xs font-medium text-emerald-600 block truncate flex items-center gap-1.5">
-              <i class="fa-solid fa-repeat text-xs"></i> Monthly Recurring
+          <div class="bg-white p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/20 shadow-sm">
+            <span class="text-[11px] font-medium text-emerald-700 block truncate flex items-center gap-1">
+              <i class="fa-solid fa-repeat text-[10px]"></i> Recurring
             </span>
-            <span id="statRecurringSpend" class="text-lg sm:text-xl font-bold text-emerald-600 mt-1 block">₪0.00</span>
+            <span id="statRecurringSpend" class="text-base sm:text-lg font-bold text-emerald-700 mt-1 block">₪0.00</span>
           </div>
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <span class="text-xs font-medium text-sky-600 block truncate flex items-center gap-1.5">
-              <i class="fa-solid fa-box text-xs"></i> Packages Spend
+          <div class="bg-white p-3.5 rounded-xl border border-sky-200 bg-sky-50/20 shadow-sm">
+            <span class="text-[11px] font-medium text-sky-700 block truncate flex items-center gap-1">
+              <i class="fa-solid fa-box text-[10px]"></i> Packages
             </span>
-            <span id="statPackagesSpend" class="text-lg sm:text-xl font-bold text-sky-600 mt-1 block">₪0.00</span>
+            <span id="statPackagesSpend" class="text-base sm:text-lg font-bold text-sky-700 mt-1 block">₪0.00</span>
           </div>
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <span class="text-xs font-medium text-slate-500 block truncate flex items-center gap-1.5">
-              <i class="fa-solid fa-credit-card text-xs"></i> Most Used Card
-            </span>
-            <span id="statTopCard" class="text-sm sm:text-base font-bold text-slate-800 mt-1 block truncate">-</span>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-medium text-slate-500 block truncate">Avg Ticket</span>
+            <span id="statAvgTicket" class="text-base sm:text-lg font-bold text-slate-900 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-medium text-slate-500 block truncate">Top Category</span>
+            <span id="statTopCat" class="text-xs sm:text-sm font-bold text-slate-800 mt-1 block truncate">-</span>
+          </div>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-medium text-slate-500 block truncate">Most Used Card</span>
+            <span id="statTopCard" class="text-xs sm:text-sm font-bold text-slate-800 mt-1 block truncate">-</span>
           </div>
         </div>
 
@@ -589,14 +594,6 @@
     function parseDateToISO(raw) {
       if (!raw) return '';
       let str = String(raw).replace(/^'+/, '').trim();
-      if (!str) return '';
-
-      // 1. If it's already ISO format (YYYY-MM-DD)
-      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-        return str;
-      }
-
-      // 2. Handle DD/MM/YYYY or MM/DD/YYYY or YYYY/MM/DD with slashes
       if (str.includes('/')) {
         const p = str.split('/');
         if (p.length === 3) {
@@ -604,18 +601,6 @@
           if (p[0].length === 4) return `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}`;
         }
       }
-
-      // 3. Handle textual dates like "8 Oct 2026", "08-Oct-2026", "October 8, 2026", or Apps Script date strings
-      const parsed = Date.parse(str);
-      if (!isNaN(parsed)) {
-        const d = new Date(parsed);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      }
-
-      // Fallback: strip time if timestamp format like "2026-10-08T..."
       return str.split('T')[0];
     }
 
@@ -1497,11 +1482,7 @@
       const pkg = packages.find(x => String(x.id) === String(id));
       if (!pkg) return;
       document.getElementById("editPkgId").value = pkg.id;
-      document.getElementById("pkgDate").value = parseDateToISO(pkg.date);      
-      if (pkg.receivedDate) {
-        document.getElementById("pkgReceivedDate").value = parseDateToISO(pkg.receivedDate);
-      }
-      
+      document.getElementById("pkgDate").value = parseDateToISO(pkg.date);
       document.getElementById("pkgShop").value = pkg.shop === '-' ? '' : (pkg.shop || '');
       document.getElementById("pkgDesc").value = pkg.itemDescription;
       document.getElementById("pkgTracking").value = pkg.trackingNumber;
