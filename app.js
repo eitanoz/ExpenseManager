@@ -885,28 +885,23 @@ async function fetchVouchers() {
     var rawData = await res.json();
     if (Array.isArray(rawData)) {
       vouchers = rawData.map(function(item, idx) {
-        // Robust value extraction supporting 0
-        var rawVal = (item.value !== undefined && item.value !== '') ? item.value : 
-                     (item.Value !== undefined && item.Value !== '') ? item.Value : 
-                     (item.amount !== undefined && item.amount !== '') ? item.amount : 0;
+        var rawVal = (item.value !== undefined && item.value !== '') ? item.value : 0;
         var val = parseFloat(rawVal);
         if (isNaN(val)) val = 0;
 
-        var isUsed = String(item.used || item.Used || item.isUsed || '').toLowerCase() === 'yes' || Boolean(item.used === true);
+        var isUsed = String(item.used || '').toLowerCase() === 'yes' || Boolean(item.used === true);
 
-        // Robust expiration date extraction across column alias names
-        var expRaw = item.expiryDate || item.ExpiryDate || item.expirationDate || item.ExpirationDate || 
-                     item.expiry || item.Expiry || item['Expiration Date'] || item['Expiry Date'] || 
-                     item['expiration date'] || item['expiry date'] || item.date || item.Date || '';
+        // Read whichever date field your existing script saved to
+        var expRaw = item.expiryDate || item.date || item.Date || '';
 
         return {
-          id: String(item.id || item.ID || ('v_' + idx)),
-          description: String(item.description || item.Description || item.store || 'Voucher'),
-          number: String(item.number || item.Number || item.code || '-'),
+          id: String(item.id || ('v_' + idx)),
+          description: String(item.description || item.store || 'Voucher'),
+          number: String(item.number || item.code || '-'),
           expiryDate: parseDateToISO(expRaw),
-          origin: String(item.origin || item.Origin || item.provider || '-'),
+          origin: String(item.origin || item.provider || '-'),
           value: val,
-          currency: String(item.currency || item.Currency || 'ILS').trim().toUpperCase(),
+          currency: String(item.currency || 'ILS').trim().toUpperCase(),
           used: isUsed
         };
       });
