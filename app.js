@@ -889,17 +889,29 @@ async function fetchVouchers() {
         var val = parseFloat(rawVal);
         if (isNaN(val)) val = 0;
 
-        var isUsed = String(item.used || '').toLowerCase() === 'yes' || Boolean(item.used === true);
+        var isUsed = String(item.used || item.Used || '').toLowerCase() === 'yes' || Boolean(item.used === true);
 
-        // Read whichever date field your existing script saved to
-        var expRaw = item.expiryDate || item.date || item.Date || '';
+        // Find date regardless of what header Apps Script returned:
+        var foundDate = "";
+        for (var k in item) {
+          var lowerKey = k.toLowerCase().replace(/[\s_]/g, '');
+          if (lowerKey === 'expirydate' || lowerKey === 'expirationdate' || lowerKey === 'expiry' || lowerKey === 'date') {
+            if (item[k]) {
+              foundDate = item[k];
+              break;
+            }
+          }
+        }
+        if (!foundDate) {
+          foundDate = item.expiryDate || item.expirydate || item.date || item.Date || '';
+        }
 
         return {
           id: String(item.id || ('v_' + idx)),
-          description: String(item.description || item.store || 'Voucher'),
-          number: String(item.number || item.code || '-'),
-          expiryDate: parseDateToISO(expRaw),
-          origin: String(item.origin || item.provider || '-'),
+          description: String(item.description || item.Description || item.store || 'Voucher'),
+          number: String(item.number || item.Number || item.code || '-'),
+          expiryDate: parseDateToISO(foundDate),
+          origin: String(item.origin || item.Origin || item.provider || '-'),
           value: val,
           currency: String(item.currency || 'ILS').trim().toUpperCase(),
           used: isUsed
