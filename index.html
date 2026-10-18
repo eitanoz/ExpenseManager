@@ -288,27 +288,6 @@
             </div>
           </div>
         </div>
-
-        <div class="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-          <div class="p-4 border-b border-slate-100">
-            <h3 class="text-sm font-semibold text-slate-800">Card Utilization Breakdown</h3>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs sm:text-sm">
-              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                <tr>
-                  <th class="p-3">Card Nickname</th>
-                  <th class="p-3 text-center">Transactions</th>
-                  <th class="p-3 text-right">Total Charged</th>
-                  <th class="p-3 text-right">Share of Total</th>
-                </tr>
-              </thead>
-              <tbody id="cardStatsTableBody" class="divide-y divide-slate-100 text-slate-700">
-                <tr><td colspan="4" class="p-4 text-center text-slate-400">No data available.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
       </section>
 
       <!-- TAB 3: PACKAGES -->
@@ -457,7 +436,7 @@
             <input type="hidden" id="editVoucherId" value="" />
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Description / Store</label>
-              <input type="text" id="voucherDesc" placeholder="e.g. BuyMe All, Shufersal, Cinema City" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              <input type="text" id="voucherDesc" placeholder="e.g. BuyMe All, Shufersal" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Voucher / Code Number</label>
@@ -465,14 +444,14 @@
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Origin / Provider</label>
-              <input type="text" id="voucherOrigin" placeholder="e.g. Work Holiday Gift, Credit Card, BuyMe" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              <input type="text" id="voucherOrigin" placeholder="e.g. Work Gift, BuyMe" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Expiration Date</label>
               <input type="date" id="voucherExpiry" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">Voucher Value & Currency</label>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Value & Currency</label>
               <div class="flex gap-2">
                 <input type="number" step="0.01" id="voucherValue" placeholder="0.00" required class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                 <select id="voucherCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
@@ -534,7 +513,7 @@
                 </tr>
               </thead>
               <tbody id="vouchersTableBody" class="divide-y divide-slate-100 text-slate-700">
-                <tr><td colspan="7" class="p-8 text-center text-slate-400">Loading vouchers...</td></tr>
+                <tr><td colspan="7" class="p-8 text-center text-slate-400">No vouchers registered yet. Add one above.</td></tr>
               </tbody>
             </table>
           </div>
@@ -632,7 +611,6 @@
   </div>
 
   <script>
-    // Embedded Active Google Apps Script Web App URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
 
     function getScriptUrl() {
@@ -661,7 +639,31 @@
     let packagesChartInstance = null;
     let categoryChartInstance = null;
     let cardChartInstance = null;
-    let deferredPrompt = null;
+
+    // Guaranteed tab switcher that never breaks
+    function switchTab(tab) {
+      try {
+        const tabs = ['expenses', 'analytics', 'packages', 'vouchers', 'settings'];
+        tabs.forEach(t => {
+          const view = document.getElementById(`view-${t}`);
+          if (view) {
+            if (t === tab) view.classList.remove('hidden');
+            else view.classList.add('hidden');
+          }
+          const btn = document.getElementById(`tab-${t}`);
+          if (btn) {
+            btn.className = (t === tab)
+              ? "tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap"
+              : "tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap";
+          }
+        });
+        if (tab === 'analytics' && typeof renderAnalytics === 'function') {
+          renderAnalytics();
+        }
+      } catch (err) {
+        console.error("Tab switch non-fatal error:", err);
+      }
+    }
 
     function saveCustomScriptUrl() {
       const input = document.getElementById("scriptUrlInput").value.trim();
@@ -676,24 +678,6 @@
       document.getElementById("scriptUrlInput").value = SCRIPT_URL;
       alert("Reset to default backend.");
       fetchAll();
-    }
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(e => console.warn(e));
-    }
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      const btn = document.getElementById('pwaInstallBtn');
-      if (btn) btn.classList.remove('hidden');
-    });
-
-    async function installPWA() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt = null;
-      }
     }
 
     function parseDateToISO(raw) {
@@ -741,21 +725,19 @@
       const scriptInput = document.getElementById("scriptUrlInput");
       if (scriptInput) scriptInput.value = getScriptUrl();
 
-      try {
-        expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
-        packages = JSON.parse(localStorage.getItem("packages") || "[]");
-        vouchers = JSON.parse(localStorage.getItem("vouchers") || "[]");
-        cards = JSON.parse(localStorage.getItem("cards") || "[]");
-        sortExpensesDescending();
-        populateCardDropdown();
-        renderCardsTable();
-        updateMonthFilterOptions();
-        renderExpenses();
-        renderPackages();
-        renderVouchers();
-      } catch (e) {
-        console.warn("Cache load error:", e);
-      }
+      // Safe cache hydration
+      try { expenses = JSON.parse(localStorage.getItem("expenses") || "[]"); } catch (e) { expenses = []; }
+      try { packages = JSON.parse(localStorage.getItem("packages") || "[]"); } catch (e) { packages = []; }
+      try { vouchers = JSON.parse(localStorage.getItem("vouchers") || "[]"); } catch (e) { vouchers = []; }
+      try { cards = JSON.parse(localStorage.getItem("cards") || "[]"); } catch (e) { cards = []; }
+
+      try { sortExpensesDescending(); } catch(e){}
+      try { populateCardDropdown(); } catch(e){}
+      try { renderCardsTable(); } catch(e){}
+      try { updateMonthFilterOptions(); } catch(e){}
+      try { renderExpenses(); } catch(e){}
+      try { renderPackages(); } catch(e){}
+      try { renderVouchers(); } catch(e){}
 
       fetchAll();
     });
@@ -782,33 +764,10 @@
           const b = document.getElementById("fxBadge");
           if (b) { b.textContent = "Live"; b.className = "text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"; }
           updatePackageConversionPreview();
-          if (typeof renderPackages === 'function') renderPackages();
+          renderPackages();
         }
       } catch (err) {
-        console.warn("FX fallback", err);
-      }
-    }
-
-    function switchTab(tab) {
-      try {
-        ['expenses', 'analytics', 'packages', 'vouchers', 'settings'].forEach(t => {
-          const view = document.getElementById(`view-${t}`);
-          if (view) {
-            if (t === tab) view.classList.remove('hidden');
-            else view.classList.add('hidden');
-          }
-          const btn = document.getElementById(`tab-${t}`);
-          if (btn) {
-            btn.className = (t === tab)
-              ? "tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap"
-              : "tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap";
-          }
-        });
-        if (tab === 'analytics' && typeof renderAnalytics === 'function') {
-          renderAnalytics();
-        }
-      } catch (err) {
-        console.error("Tab switch failed:", err);
+        console.warn("Live FX fallback:", err);
       }
     }
 
@@ -847,15 +806,12 @@
     function populateCardDropdown() {
       const select = document.getElementById("expCard");
       if (!select) return;
-      
       const currentSelected = select.value;
       const list = cards.length ? cards : [{ nickname: "Default Card" }];
-      
       select.innerHTML = list.map(c => {
         const name = (c.nickname || 'Default Card').trim();
         return `<option value="${name}">${name}</option>`;
       }).join('');
-
       if (currentSelected && list.some(c => c.nickname === currentSelected)) {
         select.value = currentSelected;
       }
@@ -924,7 +880,6 @@
       try {
         const res = await fetch(`${getScriptUrl()}?sheet=Expenses&t=${Date.now()}`);
         const rawData = await res.json();
-        
         if (Array.isArray(rawData)) {
           expenses = rawData.map((item, idx) => {
             const desc = item.description || item.Description || item.item || item.Item || item.title || Object.values(item)[1] || 'Expense';
@@ -935,7 +890,6 @@
             if (isNaN(ilsVal) || ilsVal === 0 || (currency !== 'ILS' && ilsVal === amount)) {
               ilsVal = parseFloat((amount * rate).toFixed(2));
             }
-
             const isRec = String(item.isRecurring || item.IsRecurring || '').toLowerCase() === 'yes' || Boolean(item.isRecurring === true);
 
             return {
@@ -971,11 +925,9 @@
       if (!select) return;
       const current = select.value;
       const months = new Set();
-
       expenses.forEach(item => {
         if (item.date && item.date.length >= 7) months.add(item.date.substring(0, 7));
       });
-
       let html = `<option value="ALL">All Time</option>`;
       Array.from(months).sort().reverse().forEach(m => {
         html += `<option value="${m}">${m}</option>`;
@@ -1000,8 +952,10 @@
 
       if (!filtered.length) {
         tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No transactions found.</td></tr>`;
-        document.getElementById("totalSpend").textContent = "₪0.00";
-        document.getElementById("txCount").textContent = "0";
+        const totalEl = document.getElementById("totalSpend");
+        const countEl = document.getElementById("txCount");
+        if (totalEl) totalEl.textContent = "₪0.00";
+        if (countEl) countEl.textContent = "0";
         return;
       }
 
@@ -1016,12 +970,13 @@
             <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-xs">${item.date || '-'}</td>
             <td class="p-3 font-medium text-slate-900">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span>${item.description}</span>${item.isRecurring ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700"><i class="fa-solid fa-repeat"></i> Monthly</span>` : ''}
+                <span>${item.description}</span>
+                ${item.isRecurring ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700"><i class="fa-solid fa-repeat"></i> Monthly</span>` : ''}
               </div>
             </td>
             <td class="p-3"><span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700">${item.card}</span></td>
             <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">${item.category}</span></td>
-            <td class="p-3 text-right font-medium">${sym}${Number(item.amount).toFixed(2)}</td>
+            <td class="p-3 text-right font-medium">${sym}${Number(item.amount || 0).toFixed(2)}</td>
             <td class="p-3 text-right font-semibold text-slate-900">₪${ils.toFixed(2)}</td>
             <td class="p-3 text-center whitespace-nowrap">
               <button onclick="startExpenseEdit('${item.id}')" class="text-indigo-600 px-1.5 py-1 text-xs"><i class="fa-solid fa-pen"></i></button>
@@ -1031,22 +986,21 @@
         `;
       }).join('');
 
-      document.getElementById("totalSpend").textContent = `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      document.getElementById("txCount").textContent = filtered.length;
+      const totalEl = document.getElementById("totalSpend");
+      const countEl = document.getElementById("txCount");
+      if (totalEl) totalEl.textContent = `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      if (countEl) countEl.textContent = filtered.length;
     }
 
     function handleExpenseSubmit(e) {
       if (e) e.preventDefault();
-
       const btn = document.getElementById("expSubmitBtn");
       const descEl = document.getElementById("expDesc");
       const amountEl = document.getElementById("expAmount");
 
       const desc = descEl ? descEl.value.trim() : "";
       const rawAmount = amountEl ? parseFloat(amountEl.value) : 0;
-
-      if (!desc) { alert("Please enter description"); return; }
-      if (isNaN(rawAmount) || rawAmount <= 0) { alert("Please enter amount"); return; }
+      if (!desc || isNaN(rawAmount) || rawAmount <= 0) return alert("Please enter description and amount");
 
       const rawDate = document.getElementById("expDate").value || new Date().toISOString().split('T')[0];
       const date = parseDateToISO(rawDate);
@@ -1088,12 +1042,6 @@
       renderAnalytics();
       cancelExpenseEdit();
 
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>`;
-      }
-
-      setSyncStatus("Syncing...", "amber");
       fetch(getScriptUrl(), {
         method: "POST",
         mode: "no-cors",
@@ -1103,8 +1051,7 @@
           id: editId || undefined,
           data: payload
         })
-      }).then(() => setSyncStatus("Cloud Synced", "emerald"))
-        .catch(() => setSyncStatus("Saved locally", "amber"));
+      });
     }
 
     function startExpenseEdit(id) {
@@ -1153,75 +1100,57 @@
 
     /* ------------------- ANALYTICS ------------------- */
     function renderAnalytics() {
-      const monthSelect = document.getElementById("monthFilter");
-      const selectedMonth = monthSelect ? monthSelect.value : "ALL";
-      
-      const filteredExp = (selectedMonth !== "ALL")
-        ? expenses.filter(item => item.date && item.date.startsWith(selectedMonth))
-        : expenses;
+      try {
+        const monthSelect = document.getElementById("monthFilter");
+        const selectedMonth = monthSelect ? monthSelect.value : "ALL";
+        
+        const filteredExp = (selectedMonth !== "ALL")
+          ? expenses.filter(item => item.date && item.date.startsWith(selectedMonth))
+          : expenses;
 
-      const filteredPkg = (selectedMonth !== "ALL")
-        ? packages.filter(item => item.date && item.date.startsWith(selectedMonth))
-        : packages;
+        const filteredPkg = (selectedMonth !== "ALL")
+          ? packages.filter(item => item.date && item.date.startsWith(selectedMonth))
+          : packages;
 
-      let totalIls = 0;
-      let recurringIls = 0;
-      const catTotals = {};
-      const cardTotals = {};
-      const cardCounts = {};
+        let totalIls = 0;
+        let recurringIls = 0;
+        const catTotals = {};
+        const cardTotals = {};
 
-      filteredExp.forEach(item => {
-        const val = parseFloat(item.ilsAmount) || 0;
-        totalIls += val;
+        filteredExp.forEach(item => {
+          const val = parseFloat(item.ilsAmount) || 0;
+          totalIls += val;
+          const isRec = item.isRecurring === true || String(item.isRecurring).toLowerCase() === 'yes';
+          if (isRec) recurringIls += val;
+          catTotals[item.category] = (catTotals[item.category] || 0) + val;
+          cardTotals[item.card] = (cardTotals[item.card] || 0) + val;
+        });
 
-        const isRec = item.isRecurring === true || String(item.isRecurring).toLowerCase() === 'yes';
-        if (isRec) recurringIls += val;
+        let pkgSpendIls = 0;
+        filteredPkg.forEach(p => {
+          pkgSpendIls += parseFloat(p.totalCostIls) || 0;
+        });
 
-        catTotals[item.category] = (catTotals[item.category] || 0) + val;
-        cardTotals[item.card] = (cardTotals[item.card] || 0) + val;
-        cardCounts[item.card] = (cardCounts[item.card] || 0) + 1;
-      });
+        const setEl = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+        setEl("statTotalSpend", `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+        setEl("statRecurringSpend", `₪${recurringIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+        setEl("statPackagesSpend", `₪${pkgSpendIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
-      let pkgSpendIls = 0;
-      filteredPkg.forEach(p => {
-        pkgSpendIls += parseFloat(p.totalCostIls) || 0;
-      });
-
-      const setEl = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
-      setEl("statTotalSpend", `₪${totalIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-      setEl("statRecurringSpend", `₪${recurringIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-      setEl("statPackagesSpend", `₪${pkgSpendIls.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-
-      let topCard = "-", topCardVal = 0;
-      for (const [k, v] of Object.entries(cardTotals)) {
-        if (v > topCardVal) { topCardVal = v; topCard = k; }
-      }
-      setEl("statTopCard", topCardVal > 0 ? `${topCard} (₪${topCardVal.toFixed(0)})` : "-");
-
-      const cardTbody = document.getElementById("cardStatsTableBody");
-      if (cardTbody) {
-        if (!Object.keys(cardTotals).length) {
-          cardTbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">No card activity found.</td></tr>`;
-        } else {
-          cardTbody.innerHTML = Object.keys(cardTotals).map(cName => {
-            const cTotal = cardTotals[cName];
-            const share = totalIls > 0 ? ((cTotal / totalIls) * 100).toFixed(1) : 0;
-            return `
-              <tr class="hover:bg-slate-50 border-b border-slate-100">
-                <td class="p-3 font-medium text-slate-900">${cName}</td>
-                <td class="p-3 text-center text-slate-600">${cardCounts[cName]}</td>
-                <td class="p-3 text-right font-semibold text-slate-900">₪${cTotal.toFixed(2)}</td>
-                <td class="p-3 text-right text-slate-500">${share}%</td>
-              </tr>
-            `;
-          }).join('');
+        let topCard = "-", topCardVal = 0;
+        for (const [k, v] of Object.entries(cardTotals)) {
+          if (v > topCardVal) { topCardVal = v; topCard = k; }
         }
-      }
+        setEl("statTopCard", topCardVal > 0 ? `${topCard} (₪${topCardVal.toFixed(0)})` : "-");
 
-      buildCharts(catTotals, cardTotals);
+        buildCharts(catTotals, cardTotals);
+      } catch (err) {
+        console.warn("Analytics render fallback:", err);
+      }
     }
 
     function buildCharts(catTotals, cardTotals) {
+      if (typeof Chart === 'undefined') return;
+
       const monthlyStandard = {};
       const monthlyRecurring = {};
       const allMonthsSet = new Set();
@@ -1232,11 +1161,8 @@
           allMonthsSet.add(ym);
           const val = parseFloat(item.ilsAmount) || 0;
           const isRec = item.isRecurring === true || String(item.isRecurring).toLowerCase() === 'yes';
-          if (isRec) {
-            monthlyRecurring[ym] = (monthlyRecurring[ym] || 0) + val;
-          } else {
-            monthlyStandard[ym] = (monthlyStandard[ym] || 0) + val;
-          }
+          if (isRec) monthlyRecurring[ym] = (monthlyRecurring[ym] || 0) + val;
+          else monthlyStandard[ym] = (monthlyStandard[ym] || 0) + val;
         }
       });
 
@@ -1252,30 +1178,14 @@
           data: {
             labels: mLabels,
             datasets: [
-              {
-                label: 'Standard Expenses',
-                data: standardData,
-                backgroundColor: '#6366f1',
-                borderRadius: 4
-              },
-              {
-                label: 'Monthly Recurring',
-                data: recurringData,
-                backgroundColor: '#10b981',
-                borderRadius: 4
-              }
+              { label: 'Standard', data: standardData, backgroundColor: '#6366f1', borderRadius: 4 },
+              { label: 'Recurring', data: recurringData, backgroundColor: '#10b981', borderRadius: 4 }
             ]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            scales: {
-              x: { stacked: true },
-              y: { stacked: true, beginAtZero: true }
-            },
-            plugins: {
-              legend: { position: 'top' }
-            }
+            scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
           }
         });
       }
@@ -1297,23 +1207,9 @@
           type: 'bar',
           data: {
             labels: pkgLabels.length ? pkgLabels : ['No Data'],
-            datasets: [{
-              label: 'Packages Landed Spend',
-              data: pkgLabels.length ? pkgPoints : [0],
-              backgroundColor: '#0284c7',
-              borderRadius: 6
-            }]
+            datasets: [{ label: 'Packages Spend', data: pkgLabels.length ? pkgPoints : [0], backgroundColor: '#0284c7', borderRadius: 6 }]
           },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false }
-            },
-            scales: {
-              y: { beginAtZero: true }
-            }
-          }
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
         });
       }
 
@@ -1324,10 +1220,7 @@
           type: 'doughnut',
           data: {
             labels: Object.keys(catTotals),
-            datasets: [{
-              data: Object.values(catTotals),
-              backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#ef4444', '#06b6d4', '#3b82f6', '#8b5cf6', '#14b8a6', '#64748b']
-            }]
+            datasets: [{ data: Object.values(catTotals), backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#ef4444', '#06b6d4', '#3b82f6', '#8b5cf6', '#14b8a6', '#64748b'] }]
           },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
@@ -1340,10 +1233,7 @@
           type: 'doughnut',
           data: {
             labels: Object.keys(cardTotals),
-            datasets: [{
-              data: Object.values(cardTotals),
-              backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#84cc16']
-            }]
+            datasets: [{ data: Object.values(cardTotals), backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#84cc16'] }]
           },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
@@ -1356,23 +1246,20 @@
       const dateEl = document.getElementById("pkgReceivedDate");
       const statusEl = document.getElementById("pkgStatus");
       if (checked) {
-        box.classList.remove("hidden");
-        if (!dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+        if (box) box.classList.remove("hidden");
+        if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
         if (statusEl) statusEl.value = "Delivered";
       } else {
-        box.classList.add("hidden");
-        dateEl.value = "";
+        if (box) box.classList.add("hidden");
+        if (dateEl) dateEl.value = "";
       }
     }
 
     function handleStatusChange(val) {
       const chk = document.getElementById("pkgIsReceived");
-      if (val === "Delivered") {
-        chk.checked = true;
-        toggleReceivedCheck(true);
-      } else if (chk.checked) {
-        chk.checked = false;
-        toggleReceivedCheck(false);
+      if (chk) {
+        if (val === "Delivered") { chk.checked = true; toggleReceivedCheck(true); }
+        else if (chk.checked) { chk.checked = false; toggleReceivedCheck(false); }
       }
     }
 
@@ -1393,7 +1280,7 @@
 
     function syncLinkedExpense(expId, date, desc, amount, currency) {
       try {
-        if (!amount || amount <= 0) return null;
+        if (!amount || amount <= 0) return;
         const rate = getRateToILS(currency);
         const ilsAmount = parseFloat((amount * rate).toFixed(2));
         
@@ -1411,17 +1298,12 @@
         };
 
         const existingIdx = expenses.findIndex(x => String(x.id) === String(expId));
-        if (existingIdx !== -1) {
-          expenses[existingIdx] = payload;
-        } else {
-          expenses.unshift(payload);
-        }
+        if (existingIdx !== -1) expenses[existingIdx] = payload;
+        else expenses.unshift(payload);
 
         sortExpensesDescending();
         localStorage.setItem("expenses", JSON.stringify(expenses));
-        if (typeof updateMonthFilterOptions === 'function') updateMonthFilterOptions();
-        if (typeof renderExpenses === 'function') renderExpenses();
-        if (typeof renderAnalytics === 'function') renderAnalytics();
+        renderExpenses();
 
         fetch(getScriptUrl(), {
           method: "POST",
@@ -1432,11 +1314,9 @@
             id: existingIdx !== -1 ? expId : undefined,
             data: { ...payload, isRecurring: "No" }
           })
-        }).catch(e => console.warn("Background expense sync deferred:", e));
-
-        return expId;
+        }).catch(e => console.warn(e));
       } catch (err) {
-        console.error("Non-fatal syncLinkedExpense error:", err);
+        console.error("Linked expense non-fatal err:", err);
       }
     }
 
@@ -1452,7 +1332,6 @@
             const shipCurr = String(item.shippingCurrency || item.ShippingCurrency || 'USD').trim().toUpperCase();
 
             const trueLandedIls = parseFloat((itemCost * getRateToILS(curr) + shipFee * getRateToILS(shipCurr)).toFixed(2));
-
             let storedIls = parseFloat(item.totalCostIls || item.TotalCostIls || 0);
 
             if (isNaN(storedIls) || storedIls <= 0 || (curr !== 'ILS' && Math.abs(storedIls - (itemCost + shipFee)) < 0.05)) {
@@ -1482,44 +1361,7 @@
         packages = JSON.parse(localStorage.getItem("packages") || "[]");
       }
       renderPackages();
-      if (typeof renderAnalytics === 'function') renderAnalytics();
     }
 
     function renderPackages() {
-      const tbody = document.getElementById("packagesTableBody");
-      if (!tbody) return;
-      if (!packages.length) {
-        tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-400">No active packages.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = packages.map(pkg => {
-        const isUSD = pkg.currency === 'USD';
-        const isShipUSD = pkg.shippingCurrency === 'USD';
-        
-        const dynamicTotalIls = (pkg.currency !== 'ILS' || pkg.shippingCurrency !== 'ILS')
-          ? (pkg.itemCost * getRateToILS(pkg.currency) + pkg.shippingFee * getRateToILS(pkg.shippingCurrency))
-          : pkg.totalCostIls;
-
-        return `
-          <tr class="hover:bg-slate-50 border-b border-slate-100 ${pkg.isReceived ? 'bg-emerald-50/20' : ''}">
-            <td class="p-3 text-center">
-              <input type="checkbox" ${pkg.isReceived ? 'checked' : ''} onchange="quickToggleReceived('${pkg.id}', this.checked)" class="w-4 h-4 text-emerald-600 rounded cursor-pointer border-slate-300 focus:ring-emerald-500" />
-            </td>
-            <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-xs">${pkg.date || '-'}</td>
-            <td class="p-3 font-medium text-slate-700 whitespace-nowrap">${pkg.shop || '-'}</td>
-            <td class="p-3 font-medium text-slate-900">${pkg.itemDescription}</td>
-            <td class="p-3">
-              <span class="font-mono text-slate-700 block">${pkg.trackingNumber}</span>
-              <span class="text-[11px] font-semibold text-indigo-600">${pkg.forwarder}</span>
-            </td>
-            <td class="p-3">
-              <span class="px-2 py-0.5 rounded-full text-xs font-medium ${pkg.isReceived ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100'}">
-                ${pkg.status}
-              </span>
-              ${pkg.receivedDate ? `<span class="block text-[11px] text-slate-500 mt-0.5 font-mono">Recv: ${pkg.receivedDate}</span>` : ''}
-            </td>
-            <td class="p-3 text-right font-medium">${isUSD ? '$' : '₪'}${pkg.itemCost.toFixed(2)}</td>
-            <td class="p-3 text-right font-medium">${isShipUSD ? '$' : '₪'}${pkg.shippingFee.toFixed(2)}</td>
-            <td class="p-3 text-right font-semibold text-slate-900">₪${Number(dynamicTotalIls).toFixed(2)}</td>
-            <td class="p-3 text-center whitespace-nowrap">
-              <button onclick="startPackageEdit('${pkg.id}')" class="text-indigo-600 px
+      const tbody =
