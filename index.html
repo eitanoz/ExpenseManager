@@ -448,12 +448,12 @@
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Expiration Date</label>
-              <input type="date" id="voucherExpiry" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              <input type="date" id="voucherExpiry" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Value & Currency</label>
               <div class="flex gap-2">
-                <input type="number" step="0.01" id="voucherValue" placeholder="0.00" required class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <input type="number" step="0.01" id="voucherValue" placeholder="0.00" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                 <select id="voucherCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
                   <option value="ILS">₪ ILS</option>
                   <option value="USD">$ USD</option>
@@ -589,7 +589,6 @@
     </main>
   </div>
 
-  <!-- Load External App Logic -->
-  <script src="app.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
