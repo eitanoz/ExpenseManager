@@ -4,402 +4,592 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense & Package Manager</title>
+  
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" type="image/png" href="minimalist-indigo-icon.png" />
+  <link rel="apple-touch-icon" href="minimalist-indigo-icon.png" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
   <div class="max-w-5xl mx-auto p-4 sm:p-6 pb-20">
     <!-- Header -->
-    <header class="flex justify-between items-center border-b pb-4 mb-4">
-      <h1 class="text-xl font-bold flex items-center gap-2">
-        <i class="fa-solid fa-wallet text-indigo-600"></i> Expense & Package Manager
-      </h1>
-      <span id="syncStatus" class="text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Ready</span>
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-5 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-wallet text-indigo-600"></i> Expense & Package Manager
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          Connected to Google Sheets &bull; Base Currency: <span class="font-semibold text-slate-700">ILS (₪)</span>
+        </p>
+      </div>
+      <div class="flex items-center gap-2 self-start sm:self-auto">
+        <button id="pwaInstallBtn" onclick="installPWA()" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition">
+          <i class="fa-solid fa-download"></i> Install App
+        </button>
+        <div id="syncStatus" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>Ready</span>
+        </div>
+      </div>
     </header>
 
     <!-- Navigation Tabs -->
-    <nav class="flex space-x-2 border-b mb-6 overflow-x-auto text-sm font-semibold">
-      <button onclick="switchTab('expenses')" id="tab-expenses" class="px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">Expenses</button>
-      <button onclick="switchTab('analytics')" id="tab-analytics" class="px-4 py-2 border-b-2 border-transparent text-slate-500 whitespace-nowrap">Analytics</button>
-      <button onclick="switchTab('packages')" id="tab-packages" class="px-4 py-2 border-b-2 border-transparent text-slate-500 whitespace-nowrap">Packages</button>
-      <button onclick="switchTab('vouchers')" id="tab-vouchers" class="px-4 py-2 border-b-2 border-transparent text-slate-500 whitespace-nowrap">Vouchers</button>
-      <button onclick="switchTab('settings')" id="tab-settings" class="px-4 py-2 border-b-2 border-transparent text-slate-500 whitespace-nowrap">Settings</button>
+    <nav class="flex space-x-2 border-b border-slate-200 mb-6 overflow-x-auto pb-1 text-sm font-medium">
+      <button onclick="switchTab('expenses')" id="tab-expenses" class="tab-btn px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 font-semibold flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-receipt"></i> Expenses
+      </button>
+      <button onclick="switchTab('analytics')" id="tab-analytics" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-chart-pie"></i> Analytics & Stats
+      </button>
+      <button onclick="switchTab('packages')" id="tab-packages" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-box"></i> Package Tracker
+      </button>
+      <button onclick="switchTab('vouchers')" id="tab-vouchers" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-ticket"></i> Vouchers
+      </button>
+      <button onclick="switchTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-gear"></i> Cards & Settings
+      </button>
     </nav>
 
-    <!-- TAB 1: EXPENSES -->
-    <section id="view-expenses" class="space-y-4">
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <form id="expForm" onsubmit="saveExpense(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-          <input type="hidden" id="editExpId" value="" />
-          <input type="date" id="expDate" required class="border rounded p-2" />
-          <input type="text" id="expDesc" placeholder="Description" required class="border rounded p-2" />
-          <div class="flex gap-1">
-            <input type="number" step="0.01" id="expAmt" placeholder="Amount" required class="border rounded p-2 w-2/3" />
-            <select id="expCurr" class="border rounded p-2 w-1/3 bg-slate-50 font-bold"><option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option></select>
+    <!-- Main Content Area -->
+    <main>
+      <!-- TAB 1: EXPENSES -->
+      <section id="view-expenses" class="space-y-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="formHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Expense
+            </h2>
+            <button type="button" id="cancelEditBtn" onclick="cancelExpenseEdit()" class="hidden text-xs text-rose-500 hover:underline">
+              <i class="fa-solid fa-xmark"></i> Cancel Edit
+            </button>
           </div>
-          <select id="expCat" class="border rounded p-2 bg-slate-50">
-            <option>Education</option><option>Health</option><option>Shopping</option><option>Vacation</option>
-            <option>Groceries</option><option>Dining Out</option><option>Utilities</option><option>Cars</option><option>Bikes</option><option>General</option>
-          </select>
-          <select id="expCard" class="border rounded p-2 bg-slate-50"><option value="Default Card">Default Card</option></select>
-          <label class="flex items-center gap-2 text-xs font-semibold text-indigo-700">
-            <input type="checkbox" id="expRec" class="w-4 h-4 rounded" /> Monthly Recurring
-          </label>
-          <button type="submit" class="sm:col-span-3 bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700">Save Expense</button>
-        </form>
-      </div>
-      <div class="bg-white rounded-xl shadow-sm border overflow-x-auto">
-        <table class="w-full text-xs sm:text-sm text-left">
-          <thead class="bg-slate-100 border-b">
-            <tr><th class="p-2.5">Date</th><th class="p-2.5">Desc</th><th class="p-2.5">Cat</th><th class="p-2.5">Card</th><th class="p-2.5 text-right">Orig</th><th class="p-2.5 text-right">ILS</th><th class="p-2.5 text-center">Action</th></tr>
-          </thead>
-          <tbody id="expTbody" class="divide-y"><tr><td colspan="7" class="p-4 text-center text-slate-400">Loading...</td></tr></tbody>
-        </table>
-      </div>
-    </section>
 
-    <!-- TAB 2: ANALYTICS -->
-    <section id="view-analytics" class="hidden space-y-4">
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div class="bg-white p-3 rounded-xl border"><span class="text-xs text-slate-500">Total Spend</span><div id="statTotal" class="text-lg font-bold">₪0.00</div></div>
-        <div class="bg-white p-3 rounded-xl border"><span class="text-xs text-emerald-600">Recurring Spend</span><div id="statRec" class="text-lg font-bold text-emerald-600">₪0.00</div></div>
-        <div class="bg-white p-3 rounded-xl border col-span-2 sm:col-span-1"><span class="text-xs text-sky-600">Packages Spend</span><div id="statPkg" class="text-lg font-bold text-sky-600">₪0.00</div></div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border"><canvas id="chartTrend" class="h-64"></canvas></div>
-    </section>
+          <form id="expenseForm" onsubmit="handleExpenseSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <input type="hidden" id="editExpId" value="" />
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Date</label>
+              <input type="date" id="expDate" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
+              <input type="text" id="expDesc" placeholder="e.g. Grocery Store, Coffee" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Amount & Currency</label>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="expAmount" placeholder="0.00" required class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="expCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="ILS">₪ ILS</option>
+                  <option value="USD">$ USD</option>
+                  <option value="EUR">€ EUR</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Category</label>
+              <select id="expCategory" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                <option value="Education">Education</option>
+                <option value="Health">Health</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Vacation">Vacation</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Dining Out">Dining Out</option>
+                <option value="Utilities">Utilities & Bills</option>
+                <option value="Cars">Cars</option>
+                <option value="Bikes">Bikes</option>
+                <option value="General">General</option>
+              </select>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-600">Card / Account Nickname</label>
+                <button type="button" onclick="switchTab('settings')" class="text-[11px] text-indigo-600 hover:underline">+ Manage</button>
+              </div>
+              <select id="expCard" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                <option value="Default Card">Loading cards...</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Payment Method</label>
+              <select id="expMethod" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+                <option value="Credit Card">Credit Card</option>
+                <option value="Debit Card">Debit Card</option>
+                <option value="Bank Transfer">Bank Transfer / Hora'at Keva</option>
+                <option value="Cash / Bit">Cash / Bit</option>
+              </select>
+            </div>
+            
+            <div class="sm:col-span-2 md:col-span-3 flex items-center justify-between border-t border-slate-100 pt-3">
+              <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
+                <input type="checkbox" id="expIsRecurring" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+                <span class="ml-2 font-semibold text-indigo-700 flex items-center gap-1.5">
+                  <i class="fa-solid fa-repeat"></i> Mark as Monthly Recurring Payment
+                </span>
+                <span class="ml-2 text-[11px] text-slate-400 font-normal">(Highlights item for tracking month-to-month)</span>
+              </label>
 
-    <!-- TAB 3: PACKAGES -->
-    <section id="view-packages" class="hidden space-y-4">
-      <div class="bg-white p-4 rounded-xl border shadow-sm">
-        <form id="pkgForm" onsubmit="savePackage(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-          <input type="hidden" id="editPkgId" value="" />
-          <input type="date" id="pkgDate" required class="border rounded p-2" />
-          <input type="text" id="pkgShop" placeholder="Shop (e.g. Amazon)" class="border rounded p-2" />
-          <input type="text" id="pkgDesc" placeholder="Item Desc" required class="border rounded p-2" />
-          <input type="text" id="pkgTrk" placeholder="Tracking #" required class="border rounded p-2 font-mono" />
-          <select id="pkgFwd" class="border rounded p-2 bg-slate-50"><option>RedBox</option><option>Dealtas</option><option>UShops</option><option>Direct</option><option>Other</option></select>
-          <select id="pkgStat" class="border rounded p-2 bg-slate-50"><option>Ordered</option><option>Hub</option><option>In Transit</option><option>Delivered</option></select>
-          <div class="flex gap-1">
-            <input type="number" step="0.01" id="pkgCost" placeholder="Cost" class="border rounded p-2 w-2/3" />
-            <select id="pkgCurr" class="border rounded p-2 w-1/3 bg-slate-50 font-bold"><option value="USD">$</option><option value="ILS">₪</option><option value="EUR">€</option></select>
+              <button type="submit" id="expSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i> <span id="expSubmitText">Save Expense</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Monthly Filter -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-100 p-3 rounded-xl border border-slate-200">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-calendar text-slate-500 text-sm"></i>
+            <span class="text-xs font-semibold text-slate-700">Filter Month:</span>
+            <select id="monthFilter" onchange="renderExpenses(); renderAnalytics();" class="text-xs font-medium rounded-lg border-slate-300 border py-1 px-2 bg-white">
+              <option value="ALL">All Time</option>
+            </select>
           </div>
-          <div class="flex gap-1">
-            <input type="number" step="0.01" id="pkgShip" placeholder="Shipping Fee" class="border rounded p-2 w-2/3" />
-            <select id="pkgShipCurr" class="border rounded p-2 w-1/3 bg-slate-50 font-bold"><option value="USD">$</option><option value="ILS">₪</option></select>
-          </div>
-          <button type="submit" class="sm:col-span-3 bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700">Save Package</button>
-        </form>
-      </div>
-      <div class="bg-white rounded-xl shadow-sm border overflow-x-auto">
-        <table class="w-full text-xs sm:text-sm text-left">
-          <thead class="bg-slate-100 border-b">
-            <tr><th class="p-2.5">Date</th><th class="p-2.5">Shop</th><th class="p-2.5">Item</th><th class="p-2.5">Tracking</th><th class="p-2.5">Status</th><th class="p-2.5 text-right">Cost</th><th class="p-2.5 text-right">Landed (₪)</th><th class="p-2.5 text-center">Action</th></tr>
-          </thead>
-          <tbody id="pkgTbody" class="divide-y"><tr><td colspan="8" class="p-4 text-center text-slate-400">Loading...</td></tr></tbody>
-        </table>
-      </div>
-    </section>
+          <span id="monthSummaryBadge" class="text-xs font-medium text-slate-600">Showing all transactions</span>
+        </div>
 
-    <!-- TAB 4: VOUCHERS -->
-    <section id="view-vouchers" class="hidden space-y-4">
-      <div class="bg-white p-4 rounded-xl border shadow-sm">
-        <form id="vchForm" onsubmit="saveVoucher(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-          <input type="hidden" id="editVchId" value="" />
-          <input type="text" id="vchDesc" placeholder="Voucher Desc / Store" required class="border rounded p-2" />
-          <input type="text" id="vchNum" placeholder="Code Number" required class="border rounded p-2 font-mono" />
-          <input type="text" id="vchOrig" placeholder="Origin (e.g. Work)" class="border rounded p-2" />
-          <input type="date" id="vchExp" required class="border rounded p-2" />
-          <div class="flex gap-1">
-            <input type="number" step="0.01" id="vchVal" placeholder="Value" required class="border rounded p-2 w-2/3" />
-            <select id="vchCurr" class="border rounded p-2 w-1/3 bg-slate-50 font-bold"><option value="ILS">₪</option><option value="USD">$</option></select>
+        <!-- Summary Totals -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">Filtered Spend</span>
+            <span id="totalSpend" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">₪0.00</span>
           </div>
-          <button type="submit" class="sm:col-span-3 bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700">Save Voucher</button>
-        </form>
-      </div>
-      <div class="bg-white rounded-xl shadow-sm border overflow-x-auto">
-        <table class="w-full text-xs sm:text-sm text-left">
-          <thead class="bg-slate-100 border-b">
-            <tr><th class="p-2.5 text-center">Used</th><th class="p-2.5">Desc</th><th class="p-2.5">Code</th><th class="p-2.5">Origin</th><th class="p-2.5">Expiry</th><th class="p-2.5 text-right">Value</th><th class="p-2.5 text-center">Action</th></tr>
-          </thead>
-          <tbody id="vchTbody" class="divide-y"><tr><td colspan="7" class="p-4 text-center text-slate-400">Loading...</td></tr></tbody>
-        </table>
-      </div>
-    </section>
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">Filtered Transactions</span>
+            <span id="txCount" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">0</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-500 block">Live FX Rates (to ILS)</span>
+              <span id="fxBadge" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">Loading...</span>
+            </div>
+            <div class="mt-2 space-y-1">
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>1 USD ($)</span>
+                <span class="font-bold text-slate-900">₪<span id="fxUsdRate">3.70</span></span>
+              </div>
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>1 EUR (€)</span>
+                <span class="font-bold text-slate-900">₪<span id="fxEurRate">4.00</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <!-- TAB 5: SETTINGS -->
-    <section id="view-settings" class="hidden space-y-4">
-      <div class="bg-white p-4 rounded-xl border">
-        <h3 class="font-bold text-sm mb-2">Local Data Control</h3>
-        <button onclick="localStorage.clear(); location.reload();" class="px-3 py-1.5 bg-rose-100 text-rose-700 rounded text-xs font-semibold">Wipe Local Cache & Reload</button>
-      </div>
-    </section>
+        <!-- Transactions List -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">Transactions (Sorted by Date)</h3>
+            <button onclick="fetchExpenses()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3">Date</th>
+                  <th class="p-3">Description</th>
+                  <th class="p-3">Card / Account</th>
+                  <th class="p-3">Category</th>
+                  <th class="p-3 text-right">Original</th>
+                  <th class="p-3 text-right">ILS (₪)</th>
+                  <th class="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="expensesTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="7" class="p-8 text-center text-slate-400">Loading expenses...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: ANALYTICS & STATS -->
+      <section id="view-analytics" class="hidden space-y-6">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 block truncate">Total Spend</span>
+            <span id="statTotalSpend" class="text-lg sm:text-xl font-bold text-slate-900 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span class="text-xs font-medium text-emerald-600 block truncate flex items-center gap-1.5">
+              <i class="fa-solid fa-repeat text-xs"></i> Monthly Recurring
+            </span>
+            <span id="statRecurringSpend" class="text-lg sm:text-xl font-bold text-emerald-600 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span class="text-xs font-medium text-sky-600 block truncate flex items-center gap-1.5">
+              <i class="fa-solid fa-box text-xs"></i> Packages Spend
+            </span>
+            <span id="statPackagesSpend" class="text-lg sm:text-xl font-bold text-sky-600 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 block truncate flex items-center gap-1.5">
+              <i class="fa-solid fa-credit-card text-xs"></i> Most Used Card
+            </span>
+            <span id="statTopCard" class="text-sm sm:text-base font-bold text-slate-800 mt-1 block truncate">-</span>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-chart-column text-indigo-500"></i> Monthly Spend: Standard vs Recurring (₪ ILS)
+            </h3>
+            <div class="flex items-center gap-3 text-xs font-medium">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Standard</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Recurring</span>
+            </div>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="monthlyTrendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-box text-sky-500"></i> Online Shopping & Packages Spend per Month (₪ ILS)
+            </h3>
+            <span class="text-xs text-slate-400 font-mono">Calculated from Package Tracker</span>
+          </div>
+          <div class="h-56 relative">
+            <canvas id="packagesTrendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-5">
+            <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-chart-pie text-emerald-500"></i> Spend by Category
+            </h3>
+            <div class="h-56 relative flex justify-center">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-credit-card text-sky-500"></i> Spend by Card / Account
+            </h3>
+            <div class="h-56 relative flex justify-center">
+              <canvas id="cardChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: PACKAGES -->
+      <section id="view-packages" class="space-y-6 hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="pkgFormHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order
+            </h2>
+            <button type="button" id="cancelPkgEditBtn" onclick="cancelPackageEdit()" class="hidden text-xs text-rose-500 hover:underline">
+              <i class="fa-solid fa-xmark"></i> Cancel Edit
+            </button>
+          </div>
+
+          <form id="packageForm" onsubmit="handlePackageSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <input type="hidden" id="editPkgId" value="" />
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Purchase Date</label>
+              <input type="date" id="pkgDate" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Shop / Store</label>
+              <input type="text" id="pkgShop" placeholder="e.g. Amazon, AliExpress, eBay" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Item Description</label>
+              <input type="text" id="pkgDesc" placeholder="e.g. Mechanical Keyboard" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Tracking / Order Number</label>
+              <input type="text" id="pkgTracking" placeholder="e.g. TBA1234567" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Forwarder / Carrier</label>
+              <select id="pkgForwarder" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                <option value="RedBox">RedBox</option>
+                <option value="Dealtas">Dealtas</option>
+                <option value="UShops">UShops (USA/UK)</option>
+                <option value="Buy2USA">Buy2USA</option>
+                <option value="Direct Shipping">Direct Shipping (Amazon / AliExpress)</option>
+                <option value="Shipito">Shipito</option>
+                <option value="Israel Post">Israel Post / Doar</option>
+                <option value="DHL / FedEx / UPS">DHL / FedEx / UPS</option>
+                <option value="Other">Other Forwarder</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Current Status</label>
+              <select id="pkgStatus" onchange="handleStatusChange(this.value)" class="w-full text-sm rounded-lg border-slate-300 border p-2 bg-slate-50">
+                <option value="Ordered">Ordered / Awaiting Warehouse</option>
+                <option value="Received at US Hub">Received at Forwarder Hub</option>
+                <option value="In Transit to IL">In Transit to Israel</option>
+                <option value="Customs Clearance">Customs Clearance</option>
+                <option value="Out for Delivery">Out for Delivery</option>
+                <option value="Delivered">Delivered</option>
+              </select>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-600">Item Purchase Cost</label>
+                <span id="itemCostIlsPreview" class="text-[11px] font-mono font-semibold text-indigo-600">≈ ₪0.00</span>
+              </div>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="pkgCost" placeholder="0.00" oninput="updatePackageConversionPreview()" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="pkgCurrency" onchange="updatePackageConversionPreview()" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="USD">$ USD</option>
+                  <option value="ILS">₪ ILS</option>
+                  <option value="EUR">€ EUR</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-600">Shipping Fee</label>
+                <span id="shipFeeIlsPreview" class="text-[11px] font-mono font-semibold text-indigo-600">≈ ₪0.00</span>
+              </div>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="pkgShippingFee" placeholder="0.00" oninput="updatePackageConversionPreview()" class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="pkgShippingCurrency" onchange="updatePackageConversionPreview()" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="USD">$ USD</option>
+                  <option value="ILS">₪ ILS</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 pt-5">
+              <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
+                <input type="checkbox" id="pkgIsReceived" onchange="toggleReceivedCheck(this.checked)" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+                <span class="ml-2 font-semibold text-emerald-700">Package Received?</span>
+              </label>
+              <div id="receivedDateBox" class="hidden flex-1">
+                <input type="date" id="pkgReceivedDate" class="w-full text-xs rounded-lg border-slate-300 border p-1.5 focus:ring-1 focus:ring-indigo-500" />
+              </div>
+            </div>
+            <div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2">
+              <button type="submit" id="pkgSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">Tracked Packages</h3>
+            <button onclick="fetchPackages()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3 text-center">Recv</th>
+                  <th class="p-3">Order Date</th>
+                  <th class="p-3">Shop</th>
+                  <th class="p-3">Item</th>
+                  <th class="p-3">Carrier / Tracking</th>
+                  <th class="p-3">Status / Recv Date</th>
+                  <th class="p-3 text-right">Item Cost</th>
+                  <th class="p-3 text-right">Shipping Fee</th>
+                  <th class="p-3 text-right">Total Landed (₪)</th>
+                  <th class="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="packagesTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="10" class="p-8 text-center text-slate-400">Loading packages...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: VOUCHERS -->
+      <section id="view-vouchers" class="space-y-6 hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="voucherFormHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Voucher / Gift Card
+            </h2>
+            <button type="button" id="cancelVoucherEditBtn" onclick="cancelVoucherEdit()" class="hidden text-xs text-rose-500 hover:underline">
+              <i class="fa-solid fa-xmark"></i> Cancel Edit
+            </button>
+          </div>
+
+          <form id="voucherForm" onsubmit="handleVoucherSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <input type="hidden" id="editVoucherId" value="" />
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Description / Store</label>
+              <input type="text" id="voucherDesc" placeholder="e.g. BuyMe All, Shufersal" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Voucher / Code Number</label>
+              <input type="text" id="voucherNumber" placeholder="e.g. 1234-5678-9012" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Origin / Provider</label>
+              <input type="text" id="voucherOrigin" placeholder="e.g. Work Gift, BuyMe" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Expiration Date</label>
+              <input type="date" id="voucherExpiry" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Value & Currency</label>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="voucherValue" placeholder="0.00" required class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="voucherCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="ILS">₪ ILS</option>
+                  <option value="USD">$ USD</option>
+                  <option value="EUR">€ EUR</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 pt-5">
+              <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
+                <input type="checkbox" id="voucherIsUsed" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+                <span class="ml-2 font-semibold text-slate-700">Already Used / Redeemed?</span>
+              </label>
+            </div>
+            <div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button type="submit" id="voucherSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-ticket"></i> <span id="voucherSubmitText">Save Voucher</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">Available Balance</span>
+            <span id="voucherTotalAvailable" class="text-xl sm:text-2xl font-bold text-emerald-600 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">Active Vouchers</span>
+            <span id="voucherActiveCount" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">0</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
+            <span class="text-xs font-medium text-slate-500 block">Used / Redeemed</span>
+            <span id="voucherUsedCount" class="text-xl sm:text-2xl font-bold text-slate-400 mt-1 block">0</span>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">My Vouchers & Gift Cards</h3>
+            <button onclick="fetchVouchers()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3 text-center">Used?</th>
+                  <th class="p-3">Description</th>
+                  <th class="p-3">Voucher Number</th>
+                  <th class="p-3">Origin / Provider</th>
+                  <th class="p-3">Expiration Date</th>
+                  <th class="p-3 text-right">Value</th>
+                  <th class="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="vouchersTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="7" class="p-8 text-center text-slate-400">Loading vouchers...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: CARDS & SETTINGS -->
+      <section id="view-settings" class="hidden space-y-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                <i class="fa-regular fa-credit-card text-indigo-500"></i> Manage Card Nicknames
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Saved to your Google Sheet <code>Cards</code> tab.</p>
+            </div>
+            <button onclick="fetchCards()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Reload Cards
+            </button>
+          </div>
+
+          <form id="cardForm" onsubmit="handleNewCard(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Nickname</label>
+              <input type="text" id="cardNickname" placeholder="e.g. Max Executive" required class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Issuer / Type</label>
+              <input type="text" id="cardIssuer" placeholder="e.g. Max, Cal, Isracard" required class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Billing Day (1-31)</label>
+              <input type="number" min="1" max="31" id="cardBillingDay" placeholder="e.g. 10" class="w-full text-xs rounded border-slate-300 border p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div class="flex items-end">
+              <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs py-2 px-3 rounded shadow-sm transition flex items-center justify-center gap-1">
+                <i class="fa-solid fa-plus"></i> Save Card
+              </button>
+            </div>
+          </form>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-2.5">Card Nickname</th>
+                  <th class="p-2.5">Issuer</th>
+                  <th class="p-2.5">Billing Day</th>
+                  <th class="p-2.5 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="cardsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="4" class="p-4 text-center text-slate-400">Loading cards...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-sliders text-indigo-500"></i> App Cache & Data
+            </h2>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="clearLocalStorage()" class="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-medium rounded-lg border border-rose-200">
+              <i class="fa-solid fa-trash"></i> Wipe Local Cache
+            </button>
+            <button onclick="fetchAll()" class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-medium rounded-lg border border-indigo-200">
+              <i class="fa-solid fa-arrows-rotate"></i> Force Refresh All
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyum6T_l__A43wHTS7epcJoeWhaOHIjdAFFTA2aNeCpQt568WiZuLFhXeoLdeF6h5K1/exec";
-    const RATES = { ILS: 1, USD: 3.70, EUR: 4.00 };
-
-    let expenses = [], packages = [], vouchers = [], cards = [], chartInstance = null;
-
-    function getRate(curr) {
-      const c = String(curr || 'ILS').trim().toUpperCase();
-      return RATES[c] || 1;
-    }
-
-    function switchTab(tab) {
-      ['expenses', 'analytics', 'packages', 'vouchers', 'settings'].forEach(t => {
-        const v = document.getElementById('view-' + t);
-        const b = document.getElementById('tab-' + t);
-        if (v) v.classList.toggle('hidden', t !== tab);
-        if (b) b.className = t === tab ? "px-4 py-2 border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap" : "px-4 py-2 border-b-2 border-transparent text-slate-500 whitespace-nowrap";
-      });
-      if (tab === 'analytics') renderAnalytics();
-    }
-
-    function parseDate(r) {
-      if (!r) return '';
-      let s = String(r).replace(/^'+/, '').trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-      const p = Date.parse(s);
-      if (!isNaN(p)) {
-        const d = new Date(p);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      }
-      return s.split('T')[0];
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const today = new Date().toISOString().split('T')[0];
-      ['expDate', 'pkgDate', 'vchExp'].forEach(id => { const el = document.getElementById(id); if (el) el.value = today; });
-
-      try { expenses = JSON.parse(localStorage.getItem("expenses") || "[]"); } catch(e){}
-      try { packages = JSON.parse(localStorage.getItem("packages") || "[]"); } catch(e){}
-      try { vouchers = JSON.parse(localStorage.getItem("vouchers") || "[]"); } catch(e){}
-
-      renderExpenses();
-      renderPackages();
-      renderVouchers();
-      fetchAll();
-    });
-
-    async function fetchAll() {
-      fetchData("Expenses", data => {
-        expenses = data.map((d, i) => {
-          const amt = parseFloat(d.amount || d.Amount || 0);
-          const curr = d.currency || d.Currency || 'ILS';
-          const ils = parseFloat(d.ilsAmount || (amt * getRate(curr)));
-          return {
-            id: String(d.id || `exp_${i}`),
-            date: parseDate(d.date || d.Date),
-            desc: String(d.description || d.Description || 'Expense'),
-            cat: String(d.category || 'General'),
-            card: String(d.card || 'Default Card'),
-            amt, curr, ils,
-            isRec: String(d.isRecurring || '').toLowerCase() === 'yes'
-          };
-        }).sort((a,b) => (b.date || '').localeCompare(a.date || ''));
-        localStorage.setItem("expenses", JSON.stringify(expenses));
-        renderExpenses();
-      });
-
-      fetchData("Packages", data => {
-        packages = data.map((d, i) => {
-          const cost = parseFloat(d.itemCost || 0);
-          const curr = d.currency || 'USD';
-          const ship = parseFloat(d.shippingFee || 0);
-          const shipCurr = d.shippingCurrency || 'USD';
-          const ils = parseFloat((cost * getRate(curr) + ship * getRate(shipCurr)).toFixed(2));
-          return {
-            id: String(d.id || `pkg_${i}`),
-            date: parseDate(d.date || d.Date),
-            shop: String(d.shop || '-'),
-            desc: String(d.itemDescription || 'Package'),
-            trk: String(d.trackingNumber || '-'),
-            fwd: String(d.forwarder || '-'),
-            stat: String(d.status || 'Ordered'),
-            cost, curr, ship, shipCurr, ils
-          };
-        });
-        localStorage.setItem("packages", JSON.stringify(packages));
-        renderPackages();
-      });
-
-      fetchData("Vouchers", data => {
-        vouchers = data.map((d, i) => ({
-          id: String(d.id || `v_${i}`),
-          desc: String(d.description || 'Voucher'),
-          num: String(d.number || '-'),
-          orig: String(d.origin || '-'),
-          exp: parseDate(d.expiryDate || d.expiry),
-          val: parseFloat(d.value || 0),
-          curr: d.currency || 'ILS',
-          used: String(d.used || '').toLowerCase() === 'yes'
-        }));
-        localStorage.setItem("vouchers", JSON.stringify(vouchers));
-        renderVouchers();
-      });
-    }
-
-    function fetchData(sheet, cb) {
-      fetch(`${SCRIPT_URL}?sheet=${sheet}&t=${Date.now()}`)
-        .then(r => r.json())
-        .then(d => { if (Array.isArray(d)) cb(d); })
-        .catch(err => console.warn(`Load deferred for ${sheet}:`, err));
-    }
-
-    function renderExpenses() {
-      const tb = document.getElementById("expTbody");
-      if (!tb) return;
-      if (!expenses.length) { tb.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">No expenses found.</td></tr>`; return; }
-      tb.innerHTML = expenses.map(e => `
-        <tr class="hover:bg-slate-50 ${e.isRec ? 'bg-indigo-50/40' : ''}">
-          <td class="p-2.5 font-mono text-slate-500">${e.date}</td>
-          <td class="p-2.5 font-medium">${e.desc} ${e.isRec ? '<span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-1 rounded">Monthly</span>' : ''}</td>
-          <td class="p-2.5"><span class="px-2 py-0.5 rounded text-xs bg-slate-100">${e.cat}</span></td>
-          <td class="p-2.5 text-xs text-slate-500">${e.card}</td>
-          <td class="p-2.5 text-right font-medium">${e.curr === 'USD' ? '$' : '₪'}${e.amt.toFixed(2)}</td>
-          <td class="p-2.5 text-right font-bold">₪${e.ils.toFixed(2)}</td>
-          <td class="p-2.5 text-center"><button onclick="deleteRow('Expenses', '${e.id}')" class="text-rose-500"><i class="fa-solid fa-trash"></i></button></td>
-        </tr>
-      `).join('');
-    }
-
-    function renderPackages() {
-      const tb = document.getElementById("pkgTbody");
-      if (!tb) return;
-      if (!packages.length) { tb.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">No packages tracked.</td></tr>`; return; }
-      tb.innerHTML = packages.map(p => `
-        <tr class="hover:bg-slate-50">
-          <td class="p-2.5 font-mono text-slate-500">${p.date}</td>
-          <td class="p-2.5">${p.shop}</td>
-          <td class="p-2.5 font-medium">${p.desc}</td>
-          <td class="p-2.5 font-mono">${p.trk}</td>
-          <td class="p-2.5"><span class="px-2 py-0.5 rounded text-xs bg-slate-100">${p.stat}</span></td>
-          <td class="p-2.5 text-right">${p.curr === 'USD' ? '$' : '₪'}${p.cost.toFixed(2)}</td>
-          <td class="p-2.5 text-right font-bold text-slate-900">₪${p.ils.toFixed(2)}</td>
-          <td class="p-2.5 text-center"><button onclick="deleteRow('Packages', '${p.id}')" class="text-rose-500"><i class="fa-solid fa-trash"></i></button></td>
-        </tr>
-      `).join('');
-    }
-
-    function renderVouchers() {
-      const tb = document.getElementById("vchTbody");
-      if (!tb) return;
-      if (!vouchers.length) { tb.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">No vouchers added.</td></tr>`; return; }
-      tb.innerHTML = vouchers.map(v => `
-        <tr class="hover:bg-slate-50 ${v.used ? 'opacity-40 line-through' : ''}">
-          <td class="p-2.5 text-center"><input type="checkbox" ${v.used ? 'checked' : ''} onchange="toggleVoucher('${v.id}', this.checked)" class="w-4 h-4 rounded text-indigo-600" /></td>
-          <td class="p-2.5 font-medium">${v.desc}</td>
-          <td class="p-2.5 font-mono">${v.num}</td>
-          <td class="p-2.5 text-slate-500">${v.orig}</td>
-          <td class="p-2.5 font-mono text-slate-500">${v.exp}</td>
-          <td class="p-2.5 text-right font-bold">₪${v.val.toFixed(2)}</td>
-          <td class="p-2.5 text-center"><button onclick="deleteRow('Vouchers', '${v.id}')" class="text-rose-500"><i class="fa-solid fa-trash"></i></button></td>
-        </tr>
-      `).join('');
-    }
-
-    function saveExpense(e) {
-      e.preventDefault();
-      const amt = parseFloat(document.getElementById("expAmt").value);
-      const curr = document.getElementById("expCurr").value;
-      const payload = {
-        id: "exp_" + Date.now(),
-        date: document.getElementById("expDate").value,
-        description: document.getElementById("expDesc").value,
-        amount: amt,
-        currency: curr,
-        ilsAmount: parseFloat((amt * getRate(curr)).toFixed(2)),
-        category: document.getElementById("expCat").value,
-        card: document.getElementById("expCard").value,
-        isRecurring: document.getElementById("expRec").checked ? "Yes" : "No"
-      };
-      expenses.unshift({ ...payload, desc: payload.description, amt: payload.amount, ils: payload.ilsAmount, cat: payload.category, isRec: payload.isRecurring === 'Yes' });
-      localStorage.setItem("expenses", JSON.stringify(expenses));
-      renderExpenses();
-      document.getElementById("expDesc").value = "";
-      document.getElementById("expAmt").value = "";
-      fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "add", sheet: "Expenses", data: payload }) });
-    }
-
-    function savePackage(e) {
-      e.preventDefault();
-      const cost = parseFloat(document.getElementById("pkgCost").value) || 0;
-      const curr = document.getElementById("pkgCurr").value;
-      const ship = parseFloat(document.getElementById("pkgShip").value) || 0;
-      const shipCurr = document.getElementById("pkgShipCurr").value;
-      const ils = parseFloat((cost * getRate(curr) + ship * getRate(shipCurr)).toFixed(2));
-      const payload = {
-        id: "pkg_" + Date.now(),
-        date: document.getElementById("pkgDate").value,
-        shop: document.getElementById("pkgShop").value,
-        itemDescription: document.getElementById("pkgDesc").value,
-        trackingNumber: document.getElementById("pkgTrk").value,
-        forwarder: document.getElementById("pkgFwd").value,
-        status: document.getElementById("pkgStat").value,
-        itemCost: cost, currency: curr, shippingFee: ship, shippingCurrency: shipCurr,
-        totalCostIls: ils
-      };
-      packages.unshift({ ...payload, desc: payload.itemDescription, trk: payload.trackingNumber, fwd: payload.forwarder, stat: payload.status, cost, curr, ship, shipCurr, ils });
-      localStorage.setItem("packages", JSON.stringify(packages));
-      renderPackages();
-      document.getElementById("pkgDesc").value = "";
-      document.getElementById("pkgCost").value = "";
-      fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "add", sheet: "Packages", data: payload }) });
-    }
-
-    function saveVoucher(e) {
-      e.preventDefault();
-      const payload = {
-        id: "v_" + Date.now(),
-        description: document.getElementById("vchDesc").value,
-        number: document.getElementById("vchNum").value,
-        origin: document.getElementById("vchOrig").value,
-        expiryDate: document.getElementById("vchExp").value,
-        value: parseFloat(document.getElementById("vchVal").value) || 0,
-        currency: document.getElementById("vchCurr").value,
-        used: "No"
-      };
-      vouchers.unshift({ ...payload, desc: payload.description, num: payload.number, orig: payload.origin, exp: payload.expiryDate, val: payload.value, used: false });
-      localStorage.setItem("vouchers", JSON.stringify(vouchers));
-      renderVouchers();
-      document.getElementById("vchDesc").value = "";
-      document.getElementById("vchNum").value = "";
-      document.getElementById("vchVal").value = "";
-      fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "add", sheet: "Vouchers", data: payload }) });
-    }
-
-    function toggleVoucher(id, used) {
-      const v = vouchers.find(x => x.id === id);
-      if (v) {
-        v.used = used;
-        localStorage.setItem("vouchers", JSON.stringify(vouchers));
-        renderVouchers();
-        fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "update", sheet: "Vouchers", id, data: { used: used ? "Yes" : "No" } }) });
-      }
-    }
-
-    function deleteRow(sheet, id) {
-      if (!confirm("Delete entry?")) return;
-      if (sheet === 'Expenses') expenses = expenses.filter(x => x.id !== id);
-      if (sheet === 'Packages') packages = packages.filter(x => x.id !== id);
-      if (sheet === 'Vouchers') vouchers = vouchers.filter(x => x.id !== id);
-      localStorage.setItem(sheet.toLowerCase(), JSON.stringify(sheet === 'Expenses' ? expenses : sheet === 'Packages' ? packages : vouchers));
-      if (sheet === 'Expenses') renderExpenses();
-      if (sheet === 'Packages') renderPackages();
-      if (sheet === 'Vouchers') renderVouchers();
-      fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", sheet, id }) });
-    }
-
-    function renderAnalytics() {
-      let tot = 0, rec = 0, pkgTot = 0;
-      expenses.forEach(e => { tot += e.ils; if (e.isRec) rec += e.ils; });
-      packages.forEach(p => { pkgTot += p.ils; });
-      document.getElementById("statTotal").textContent = `₪${tot.toFixed(2)}`;
-      document.getElementById("statRec").textContent = `₪${rec.toFixed(2)}`;
-      document.getElementById("statPkg").textContent = `₪${pkgTot.toFixed(2)}`;
-    }
-  </script>
+  <!-- Load External App Logic -->
+  <script src="app.js"></script>
 </body>
 </html>
