@@ -1003,7 +1003,7 @@ function handleVoucherSubmit(e) {
   var desc = document.getElementById("voucherDesc").value.trim();
   var num = document.getElementById("voucherNumber").value.trim();
 
-  // Allow 0 explicitly, defaulting to 0 if left empty
+  // Explicitly allow 0
   var valInput = document.getElementById("voucherValue").value;
   var val = (valInput === "" || isNaN(parseFloat(valInput))) ? 0 : parseFloat(valInput);
 
@@ -1019,33 +1019,59 @@ function handleVoucherSubmit(e) {
   var isEditing = Boolean(editId);
   var targetId = isEditing ? editId : ("v_" + Date.now());
 
-  // Broadcast all possible column header names so Apps Script matches your sheet header exactly
+  // Clean, deterministic payload matching Google Sheet headers exactly:
+  // id | description | number | origin | expiryDate | value | currency | used
   var payload = {
     id: targetId,
     description: desc,
-    Description: desc,
     number: num,
-    Number: num,
-    code: num,
     origin: origin,
-    Origin: origin,
     expiryDate: expiry,
-    expirationDate: expiry,
-    expiry: expiry,
-    "Expiration Date": expiry,
-    "Expiry Date": expiry,
-    "expiration date": expiry,
-    "expiry date": expiry,
-    date: expiry,
-    Date: expiry,
     value: val,
-    Value: val,
-    amount: val,
     currency: curr,
-    Currency: curr,
-    used: isUsed ? "Yes" : "No",
-    Used: isUsed ? "Yes" : "No"
+    used: isUsed ? "Yes" : "No"
   };
+
+  var localVoucher = {
+    id: targetId,
+    description: desc,
+    number: num,
+    origin: origin,
+    expiryDate: expiry,
+    value: val,
+    currency: curr,
+    used: isUsed
+  };
+
+  if (isEditing) {
+    vouchers = vouchers.map(function(x) {
+      return String(x.id) === String(editId) ? localVoucher : x;
+    });
+  } else {
+    vouchers.unshift(localVoucher);
+  }
+
+  localStorage.setItem("vouchers", JSON.stringify(vouchers));
+  renderVouchers();
+  cancelVoucherEdit();
+
+  setSyncStatus("Syncing...", "amber");
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify({
+      action: isEditing ? "update" : "add",
+      sheet: "Vouchers",
+      id: editId || undefined,
+      data: payload
+    })
+  }).then(function() {
+    setSyncStatus("Cloud Synced", "emerald");
+  }).catch(function(e) {
+    setSyncStatus("Saved locally", "amber");
+    console.warn("Voucher sync deferral:", e);
+  });
+}
 
   var localVoucher = {
     id: targetId,
