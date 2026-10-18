@@ -1,4 +1,3 @@
-<!-- VER 7.0 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,6 +53,9 @@
       </button>
       <button onclick="switchTab('packages')" id="tab-packages" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-box"></i> Package Tracker
+      </button>
+      <button onclick="switchTab('vouchers')" id="tab-vouchers" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-ticket"></i> Vouchers
       </button>
       <button onclick="switchTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-gear"></i> Cards & Settings
@@ -129,7 +131,6 @@
               </select>
             </div>
             
-            <!-- Monthly recurring flag -->
             <div class="sm:col-span-2 md:col-span-3 flex items-center justify-between border-t border-slate-100 pt-3">
               <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
                 <input type="checkbox" id="expIsRecurring" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
@@ -217,7 +218,6 @@
 
       <!-- TAB 2: ANALYTICS & STATS -->
       <section id="view-analytics" class="hidden space-y-6">
-        <!-- Top KPI Cards -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
             <span class="text-xs font-medium text-slate-500 block truncate">Total Spend</span>
@@ -243,7 +243,6 @@
           </div>
         </div>
 
-        <!-- Chart 1: Monthly Spend Breakdown (Standard vs Recurring) -->
         <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
             <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
@@ -259,7 +258,6 @@
           </div>
         </div>
 
-        <!-- Chart 2: Monthly Packages Spend Breakdown -->
         <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
             <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
@@ -272,7 +270,6 @@
           </div>
         </div>
 
-        <!-- Category & Card Doughnuts -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-5">
             <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -292,7 +289,6 @@
           </div>
         </div>
 
-        <!-- Card Breakdown Table -->
         <div class="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
           <div class="p-4 border-b border-slate-100">
             <h3 class="text-sm font-semibold text-slate-800">Card Utilization Breakdown</h3>
@@ -445,7 +441,107 @@
         </div>
       </section>
 
-      <!-- TAB 4: CARDS & SETTINGS -->
+      <!-- TAB 4: VOUCHERS -->
+      <section id="view-vouchers" class="space-y-6 hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="voucherFormHeader" class="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle text-indigo-500"></i> Add New Voucher / Gift Card
+            </h2>
+            <button type="button" id="cancelVoucherEditBtn" onclick="cancelVoucherEdit()" class="hidden text-xs text-rose-500 hover:underline">
+              <i class="fa-solid fa-xmark"></i> Cancel Edit
+            </button>
+          </div>
+
+          <form id="voucherForm" onsubmit="handleVoucherSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <input type="hidden" id="editVoucherId" value="" />
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Description / Store</label>
+              <input type="text" id="voucherDesc" placeholder="e.g. BuyMe All, Shufersal, Cinema City" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Voucher / Code Number</label>
+              <input type="text" id="voucherNumber" placeholder="e.g. 1234-5678-9012" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Origin / Provider</label>
+              <input type="text" id="voucherOrigin" placeholder="e.g. Work Holiday Gift, Credit Card, BuyMe" class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Expiration Date</label>
+              <input type="date" id="voucherExpiry" required class="w-full text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Voucher Value & Currency</label>
+              <div class="flex gap-2">
+                <input type="number" step="0.01" id="voucherValue" placeholder="0.00" required class="w-2/3 text-sm rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <select id="voucherCurrency" class="w-1/3 text-sm rounded-lg border-slate-300 border p-2 bg-slate-50 font-medium">
+                  <option value="ILS">₪ ILS</option>
+                  <option value="USD">$ USD</option>
+                  <option value="EUR">€ EUR</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 pt-5">
+              <label class="inline-flex items-center cursor-pointer text-xs font-medium text-slate-700">
+                <input type="checkbox" id="voucherIsUsed" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+                <span class="ml-2 font-semibold text-slate-700">Already Used / Redeemed?</span>
+              </label>
+            </div>
+            <div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button type="submit" id="voucherSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2 px-6 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-ticket"></i> <span id="voucherSubmitText">Save Voucher</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Voucher Summary Stat Badges -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">Available Balance</span>
+            <span id="voucherTotalAvailable" class="text-xl sm:text-2xl font-bold text-emerald-600 mt-1 block">₪0.00</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">Active Vouchers</span>
+            <span id="voucherActiveCount" class="text-xl sm:text-2xl font-bold text-slate-900 mt-1 block">0</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
+            <span class="text-xs font-medium text-slate-500 block">Used / Redeemed</span>
+            <span id="voucherUsedCount" class="text-xl sm:text-2xl font-bold text-slate-400 mt-1 block">0</span>
+          </div>
+        </div>
+
+        <!-- Vouchers List -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">My Vouchers & Gift Cards</h3>
+            <button onclick="fetchVouchers()" class="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3 text-center">Used?</th>
+                  <th class="p-3">Description</th>
+                  <th class="p-3">Voucher Number</th>
+                  <th class="p-3">Origin / Provider</th>
+                  <th class="p-3">Expiration Date</th>
+                  <th class="p-3 text-right">Value</th>
+                  <th class="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="vouchersTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr><td colspan="7" class="p-8 text-center text-slate-400">Loading vouchers...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: CARDS & SETTINGS -->
       <section id="view-settings" class="hidden space-y-6">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -559,6 +655,7 @@
 
     let expenses = [];
     let packages = [];
+    let vouchers = [];
     let cards = [];
     let trendChartInstance = null;
     let packagesChartInstance = null;
@@ -604,12 +701,10 @@
       let str = String(raw).replace(/^'+/, '').trim();
       if (!str) return '';
 
-      // 1. Strict ISO YYYY-MM-DD
       if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
         return str;
       }
 
-      // 2. Handle slashes DD/MM/YYYY or MM/DD/YYYY or YYYY/MM/DD
       if (str.includes('/')) {
         const p = str.split('/');
         if (p.length === 3) {
@@ -618,7 +713,6 @@
         }
       }
 
-      // 3. Handle textual strings like "8 Oct 2026", "08-Oct-2026", "October 8, 2026"
       const parsed = Date.parse(str);
       if (!isNaN(parsed)) {
         const d = new Date(parsed);
@@ -641,6 +735,8 @@
       if (dateEl) dateEl.value = todayISO;
       const pkgDateEl = document.getElementById("pkgDate");
       if (pkgDateEl) pkgDateEl.value = todayISO;
+      const voucherExpEl = document.getElementById("voucherExpiry");
+      if (voucherExpEl) voucherExpEl.value = todayISO;
       
       const scriptInput = document.getElementById("scriptUrlInput");
       if (scriptInput) scriptInput.value = getScriptUrl();
@@ -648,6 +744,7 @@
       try {
         expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
         packages = JSON.parse(localStorage.getItem("packages") || "[]");
+        vouchers = JSON.parse(localStorage.getItem("vouchers") || "[]");
         cards = JSON.parse(localStorage.getItem("cards") || "[]");
         sortExpensesDescending();
         populateCardDropdown();
@@ -655,6 +752,7 @@
         updateMonthFilterOptions();
         renderExpenses();
         renderPackages();
+        renderVouchers();
       } catch (e) {
         console.warn("Cache load error:", e);
       }
@@ -667,6 +765,7 @@
       fetchCards();
       fetchExpenses();
       fetchPackages();
+      fetchVouchers();
     }
 
     async function fetchLiveRates() {
@@ -692,7 +791,7 @@
 
     function switchTab(tab) {
       try {
-        ['expenses', 'analytics', 'packages', 'settings'].forEach(t => {
+        ['expenses', 'analytics', 'packages', 'vouchers', 'settings'].forEach(t => {
           const view = document.getElementById(`view-${t}`);
           if (view) {
             if (t === tab) view.classList.remove('hidden');
@@ -917,8 +1016,7 @@
             <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-xs">${item.date || '-'}</td>
             <td class="p-3 font-medium text-slate-900">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span>${item.description}</span>
-                ${item.isRecurring ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700"><i class="fa-solid fa-repeat"></i> Monthly</span>` : ''}
+                <span>${item.description}</span>${item.isRecurring ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700"><i class="fa-solid fa-repeat"></i> Monthly</span>` : ''}
               </div>
             </td>
             <td class="p-3"><span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700">${item.card}</span></td>
@@ -1124,7 +1222,6 @@
     }
 
     function buildCharts(catTotals, cardTotals) {
-      // 1. Stacked Monthly Trend: Standard vs Recurring
       const monthlyStandard = {};
       const monthlyRecurring = {};
       const allMonthsSet = new Set();
@@ -1183,7 +1280,6 @@
         });
       }
 
-      // 2. Monthly Packages Spend Chart
       const pkgMonthly = {};
       packages.forEach(pkg => {
         if (pkg.date && pkg.date.length >= 7) {
@@ -1221,7 +1317,6 @@
         });
       }
 
-      // 3. Category Doughnut Chart
       const catCanvas = document.getElementById("categoryChart");
       if (catCanvas) {
         if (categoryChartInstance) categoryChartInstance.destroy();
@@ -1238,7 +1333,6 @@
         });
       }
 
-      // 4. Card Doughnut Chart
       const cardCanvas = document.getElementById("cardChart");
       if (cardCanvas) {
         if (cardChartInstance) cardChartInstance.destroy();
@@ -1357,12 +1451,10 @@
             const shipFee = parseFloat(item.shippingFee !== undefined ? item.shippingFee : (item.shippingFeeIls || 0)) || 0;
             const shipCurr = String(item.shippingCurrency || item.ShippingCurrency || 'USD').trim().toUpperCase();
 
-            // Calculate true converted ILS cost using live exchange rate
             const trueLandedIls = parseFloat((itemCost * getRateToILS(curr) + shipFee * getRateToILS(shipCurr)).toFixed(2));
 
             let storedIls = parseFloat(item.totalCostIls || item.TotalCostIls || 0);
 
-            // If foreign currency was saved with a 1:1 ratio or is missing, recalculate it
             if (isNaN(storedIls) || storedIls <= 0 || (curr !== 'ILS' && Math.abs(storedIls - (itemCost + shipFee)) < 0.05)) {
               storedIls = trueLandedIls;
             }
@@ -1404,7 +1496,6 @@
         const isUSD = pkg.currency === 'USD';
         const isShipUSD = pkg.shippingCurrency === 'USD';
         
-        // Always display the true converted ILS landed total
         const dynamicTotalIls = (pkg.currency !== 'ILS' || pkg.shippingCurrency !== 'ILS')
           ? (pkg.itemCost * getRateToILS(pkg.currency) + pkg.shippingFee * getRateToILS(pkg.shippingCurrency))
           : pkg.totalCostIls;
@@ -1431,212 +1522,4 @@
             <td class="p-3 text-right font-medium">${isShipUSD ? '$' : '₪'}${pkg.shippingFee.toFixed(2)}</td>
             <td class="p-3 text-right font-semibold text-slate-900">₪${Number(dynamicTotalIls).toFixed(2)}</td>
             <td class="p-3 text-center whitespace-nowrap">
-              <button onclick="startPackageEdit('${pkg.id}')" class="text-indigo-600 px-1 py-1 text-xs"><i class="fa-solid fa-pen"></i></button>
-              <button onclick="deletePackage('${pkg.id}')" class="text-rose-500 px-1 py-1 text-xs"><i class="fa-solid fa-trash"></i></button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function quickToggleReceived(id, isReceived) {
-      const pkg = packages.find(x => String(x.id) === String(id));
-      if (!pkg) return;
-      pkg.isReceived = isReceived;
-      pkg.status = isReceived ? "Delivered" : "In Transit to IL";
-      pkg.receivedDate = isReceived ? new Date().toISOString().split('T')[0] : "";
-      
-      localStorage.setItem("packages", JSON.stringify(packages));
-      renderPackages();
-
-      fetch(getScriptUrl(), {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({ action: "update", sheet: "Packages", id: pkg.id, data: pkg })
-      });
-    }
-
-    function handlePackageSubmit(e) {
-      if (e) e.preventDefault();
-      const btn = document.getElementById("pkgSubmitBtn");
-      const desc = document.getElementById("pkgDesc").value.trim();
-      if (!desc) return alert("Enter item description");
-
-      const rawDate = document.getElementById("pkgDate").value || new Date().toISOString().split('T')[0];
-      const date = parseDateToISO(rawDate);
-      const shop = document.getElementById("pkgShop").value.trim();
-      const tracking = document.getElementById("pkgTracking").value.trim();
-      const forwarder = document.getElementById("pkgForwarder").value;
-      const cost = parseFloat(document.getElementById("pkgCost").value) || 0;
-      const currency = document.getElementById("pkgCurrency").value;
-      const shippingFee = parseFloat(document.getElementById("pkgShippingFee").value) || 0;
-      const shippingCurrency = document.getElementById("pkgShippingCurrency").value;
-      let status = document.getElementById("pkgStatus").value;
-      const isReceived = document.getElementById("pkgIsReceived").checked;
-      const receivedDate = isReceived ? (document.getElementById("pkgReceivedDate").value || new Date().toISOString().split('T')[0]) : "";
-
-      if (isReceived) status = "Delivered";
-
-      const editId = document.getElementById("editPkgId").value.trim();
-      const isEditing = Boolean(editId);
-      const targetId = isEditing ? editId : ("pkg_" + Date.now());
-
-      const itemIls = cost * getRateToILS(currency);
-      const shipIls = shippingFee * getRateToILS(shippingCurrency);
-      const totalCostIls = parseFloat((itemIls + shipIls).toFixed(2));
-
-      const itemExpId = `${targetId}_item`;
-      const shippingExpId = `${targetId}_ship`;
-
-      if (cost > 0) {
-        const itemDesc = shop ? `[${shop}] ${desc}` : desc;
-        syncLinkedExpense(itemExpId, date, itemDesc, cost, currency);
-      }
-
-      if (shippingFee > 0) {
-        const shipDesc = `Shipping: ${desc} (${forwarder})`;
-        syncLinkedExpense(shippingExpId, date, shipDesc, shippingFee, shippingCurrency);
-      }
-
-      const payload = {
-        id: targetId,
-        date: date,
-        purchaseDate: date,
-        shop: shop,
-        itemDescription: desc,
-        trackingNumber: tracking,
-        forwarder: forwarder,
-        status: status,
-        isReceived: isReceived,
-        receivedDate: receivedDate,
-        itemCost: cost,
-        currency: currency,
-        shippingFee: shippingFee,
-        shippingCurrency: shippingCurrency,
-        totalCostIls: totalCostIls
-      };
-
-      if (isEditing) {
-        packages = packages.map(x => String(x.id) === String(editId) ? payload : x);
-      } else {
-        packages.unshift(payload);
-      }
-
-      localStorage.setItem("packages", JSON.stringify(packages));
-      renderPackages();
-      if (typeof renderAnalytics === 'function') renderAnalytics();
-      cancelPackageEdit();
-
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-box"></i> <span id="pkgSubmitText">Save Package</span>`;
-      }
-
-      setSyncStatus("Syncing...", "amber");
-      fetch(getScriptUrl(), {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({ action: isEditing ? "update" : "add", sheet: "Packages", id: editId || undefined, data: payload })
-      }).then(() => setSyncStatus("Cloud Synced", "emerald"))
-        .catch(() => setSyncStatus("Saved locally", "amber"));
-    }
-
-    function startPackageEdit(id) {
-      const pkg = packages.find(x => String(x.id) === String(id));
-      if (!pkg) return;
-      document.getElementById("editPkgId").value = pkg.id;
-      document.getElementById("pkgDate").value = parseDateToISO(pkg.date);
-      document.getElementById("pkgShop").value = pkg.shop === '-' ? '' : (pkg.shop || '');
-      document.getElementById("pkgDesc").value = pkg.itemDescription;
-      document.getElementById("pkgTracking").value = pkg.trackingNumber;
-      document.getElementById("pkgForwarder").value = pkg.forwarder;
-      document.getElementById("pkgCost").value = pkg.itemCost;
-      document.getElementById("pkgCurrency").value = pkg.currency;
-      document.getElementById("pkgShippingFee").value = pkg.shippingFee;
-      document.getElementById("pkgShippingCurrency").value = pkg.shippingCurrency;
-      document.getElementById("pkgStatus").value = pkg.status;
-
-      const chk = document.getElementById("pkgIsReceived");
-      chk.checked = Boolean(pkg.isReceived);
-      toggleReceivedCheck(chk.checked);
-      if (pkg.receivedDate) {
-        document.getElementById("pkgReceivedDate").value = parseDateToISO(pkg.receivedDate);
-      }
-
-      updatePackageConversionPreview();
-
-      document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-pen text-amber-500"></i> Update Package`;
-      document.getElementById("pkgSubmitText").textContent = "Update Package";
-      document.getElementById("cancelPkgEditBtn").classList.remove("hidden");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function cancelPackageEdit() {
-      document.getElementById("editPkgId").value = "";
-      const d = document.getElementById("pkgDate");
-      if (d) d.value = new Date().toISOString().split('T')[0];
-      document.getElementById("pkgShop").value = "";
-      document.getElementById("pkgDesc").value = "";
-      document.getElementById("pkgTracking").value = "";
-      document.getElementById("pkgCost").value = "";
-      document.getElementById("pkgShippingFee").value = "";
-      const chk = document.getElementById("pkgIsReceived");
-      if (chk) {
-        chk.checked = false;
-        toggleReceivedCheck(false);
-      }
-      updatePackageConversionPreview();
-      document.getElementById("pkgFormHeader").innerHTML = `<i class="fa-solid fa-plus-circle text-indigo-500"></i> Add Tracked Package / Order`;
-      document.getElementById("pkgSubmitText").textContent = "Save Package";
-      document.getElementById("cancelPkgEditBtn").classList.add("hidden");
-    }
-
-    function deletePackage(id) {
-      if (!confirm("Delete package and its linked expenses?")) return;
-      packages = packages.filter(x => String(x.id) !== String(id));
-      localStorage.setItem("packages", JSON.stringify(packages));
-      renderPackages();
-
-      const itemExpId = `${id}_item`;
-      const shipExpId = `${id}_ship`;
-      expenses = expenses.filter(x => String(x.id) !== itemExpId && String(x.id) !== shipExpId);
-      sortExpensesDescending();
-      localStorage.setItem("expenses", JSON.stringify(expenses));
-      renderExpenses();
-      renderAnalytics();
-
-      fetch(getScriptUrl(), {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({ action: "delete", sheet: "Packages", id: id })
-      });
-      fetch(getScriptUrl(), {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({ action: "delete", sheet: "Expenses", id: itemExpId })
-      });
-      fetch(getScriptUrl(), {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({ action: "delete", sheet: "Expenses", id: shipExpId })
-      });
-    }
-
-    /* ------------------- HELPERS ------------------- */
-    function setSyncStatus(text, color) {
-      const el = document.getElementById("syncStatus");
-      if (!el) return;
-      const dot = el.querySelector("span:first-child");
-      const label = el.querySelector("span:last-child");
-      if (label) label.textContent = text;
-      if (dot) dot.className = `w-2 h-2 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : color === 'amber' ? 'bg-amber-500 animate-pulse' : 'bg-slate-400'}`;
-    }
-
-    function clearLocalStorage() {
-      localStorage.clear();
-      alert("Cache cleared.");
-      location.reload();
-    }
-  </script>
-</body>
-</html>
+              <button onclick="startPackageEdit('${pkg.id}')" class="text-indigo-600 px
